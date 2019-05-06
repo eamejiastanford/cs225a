@@ -116,8 +116,8 @@ int main() {
 	joint_task->_kv = 15.0;
 
 	VectorXd q_init_desired = initial_q;
-	q_init_desired(0) += 0.3;
-	q_init_desired(4) -= 0.2;
+	q_init_desired << -30.0, -15.0, -15.0, -105.0, 0.0, 90.0, 45.0;
+	q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
 
 	// create a timer
@@ -168,8 +168,8 @@ int main() {
 			if( (robot->_q - q_init_desired).norm() < 0.05 )
 			{
 				posori_task->reInitializeTask();
-				posori_task->_desired_position += Vector3d(0.1,0.3,-0.2);
-				posori_task->_desired_orientation = AngleAxisd(M_PI/4, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
+				posori_task->_desired_position += Vector3d(-0.1,0.1,0.1);
+				posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 
 				joint_task->reInitializeTask();
 				joint_task->_kp = 0;
