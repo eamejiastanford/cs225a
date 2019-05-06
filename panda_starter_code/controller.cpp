@@ -112,7 +112,7 @@ int main() {
 #endif
 
 	VectorXd joint_task_torques = VectorXd::Zero(dof);
-	joint_task->_kp = 100.0;
+	joint_task->_kp = 250.0;
 	joint_task->_kv = 15.0;
 
 	VectorXd q_init_desired = initial_q;
@@ -165,7 +165,7 @@ int main() {
 
 			command_torques = joint_task_torques;
 
-			if( (robot->_q - q_init_desired).norm() < 0.05 )
+			if( (robot->_q - q_init_desired).norm() < 0.15 )
 			{
 				posori_task->reInitializeTask();
 				posori_task->_desired_position += Vector3d(-0.1,0.1,0.1);
