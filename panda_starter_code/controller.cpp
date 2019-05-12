@@ -129,6 +129,10 @@ int main() {
 	bool fTimerDidSleep = true;
 	double taskStart_time = 0.0;
 
+    const string link_name = "link7";
+    const Vector3d pos_in_link = Vector3d(0, 0, 0.05);
+    Vector3d current_x(3);
+
 	while (runloop) {
 		// wait for next scheduled loop
 		timer.waitForNextLoop();
@@ -175,6 +179,7 @@ int main() {
 			if( (robot->_q - q_init_desired).norm() < 0.15 )
 			{
 				posori_task->reInitializeTask();
+				//posori_task->_desired_position = Vector3d(0.4328,0.09829, 0.01);
 				posori_task->_desired_position += Vector3d(-0.0,0.0,0.0);
 				posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 
