@@ -116,8 +116,11 @@ int main() {
 	joint_task->_kv = 15.0;
 
 	VectorXd q_init_desired = initial_q;
-	q_init_desired << -30.0, -15.0, -15.0, -105.0, 0.0, 90.0, 45.0;
-	q_init_desired *= M_PI/180.0;
+    // Desired initial q
+    // 1.47471
+	q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.994309, 2.5031, 1.38538;
+	//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
+	//q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
 
 	// create a timer
@@ -126,6 +129,10 @@ int main() {
 	timer.setLoopFrequency(1000); 
 	double start_time = timer.elapsedTime(); //secs
 	bool fTimerDidSleep = true;
+
+    const string link_name = "link7";
+    const Vector3d pos_in_link = Vector3d(0, 0, 0.05);
+    Vector3d current_x(3);
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -168,8 +175,11 @@ int main() {
 			if( (robot->_q - q_init_desired).norm() < 0.15 )
 			{
 				posori_task->reInitializeTask();
-				posori_task->_desired_position += Vector3d(-0.1,0.1,0.1);
-				posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
+
+                robot->position(current_x, link_name, pos_in_link);
+                cout << current_x.transpose() << endl;
+				posori_task->_desired_position = Vector3d(0.4328,0.09829, 0.01);
+				posori_task->_desired_orientation = AngleAxisd(-M_PI/12, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 
 				joint_task->reInitializeTask();
 				joint_task->_kp = 0;
