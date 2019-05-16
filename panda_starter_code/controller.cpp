@@ -32,7 +32,6 @@ enum STATE {
 };
 
 STATE state = READY_POSITION;
-//int state = JOINT_CONTROLLER;
 
 // redis keys:
 // - read:
@@ -126,7 +125,7 @@ int main() {
 	joint_task->_kv = 15.0;
 
 	VectorXd q_init_desired = initial_q;
-    // Desired initial q
+    // Desired initial configuration
 	q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.994309, 2.5031, 1.38538;
 	//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
 	//q_init_desired *= M_PI/180.0;
@@ -147,9 +146,23 @@ int main() {
     // For printing desired trajectory to file 
     ofstream des_trajectory;
     des_trajectory.open("des_trajectory.txt");
+    
+    // For printing the joint configuration to a file
+    ofstream joints;
+    joints.open("joints.txt");
+    
+    // For printing the velocity to a file
+    ofstream velocity;
+    velocity.open("velocity.txt");
 
+    // Coefficients for the polynomial trajectory
     VectorXd a(24);
     a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.311859, 0.319496, -2.510322, -0.207906, -0.679664, 1.673548, 0.4328, -0.170849917695474, 0.01, 0, -0.608469135802469, 0, 0, 3.42435802469136, 0, 0, -2.54674897119342, 0;
+
+    // Intermediate point of the trajectory
+    Vector3d xDesInter = Vector3d(0.4328,0.09829, 0.01);
+    // End point of the trajectory
+    Vector3d xDesF = Vector3d(0.4328,-0.2, 0.01);
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -180,25 +193,29 @@ int main() {
 
 		if(state == READY_POSITION)
 		{
-			// update task model and set hierarchy
+            /*
+             * Moves the robot to the desired initial configuration that marks the 
+             * start of its swing.
+             */
+            
+			// Update task model and set hierarchy
 			N_prec.setIdentity();
 			joint_task->updateTaskModel(N_prec);
 
-			// compute torques
+			// Compute torques
 			joint_task->computeTorques(joint_task_torques);
 
 			command_torques = joint_task_torques;
 
+            // Once the robot has reached close to its desired initial configuration,
+            // change states to start the swing controller and start the task timer
 			if( (robot->_q - q_init_desired).norm() < 0.15 )
 			{
 				posori_task->reInitializeTask();
 				posori_task->_desired_position += Vector3d(0.0,0.0,0.0);
 				posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-                cout << posori_task->_current_position.transpose() << ' ' << time << endl;
-
 				joint_task->reInitializeTask();
 				joint_task->_kp = 0;
-
 				state = SWING;
 				taskStart_time = timer.elapsedTime();
 			}
@@ -206,15 +223,21 @@ int main() {
 
 		else if(state == SWING)
 		{
-			double tTask = timer.elapsedTime() - taskStart_time;
+            /*
+             * Controller for the main swing of the robot to the ball.
+             */
 
+			// Initialize the task timer
+            double tTask = timer.elapsedTime() - taskStart_time;
+
+            // Define the desired trajectory of the EE based on the precalculated coefficients
  			Vector3d xDes = Vector3d(0.0,0.0,0.0);
  			xDes(0) = a[0] + a[3] * tTask + a[6] * pow(tTask,2) + a[9] * pow(tTask,3);
  			xDes(1) = a[1] + a[4] * tTask + a[7] * pow(tTask,2) + a[10] * pow(tTask,3);
  			xDes(2) = a[2] + a[5] * tTask + a[8] * pow(tTask,2) + a[11] * pow(tTask,3);
 
- 			Vector3d xDesF = Vector3d(0.4328,0.09829, 0.01);
 
+            // Define the desired velocity of the swing based on the derivative of the desired trajectory
  			Vector3d vDes = Vector3d(0.0,0.0,0.0);
  			vDes(0) = a[3] + 2 * a[6] * tTask + 3 * a[9] * pow(tTask,2);
  			vDes(1) = a[4] + 2 * a[7] * tTask + 3 * a[10] * pow(tTask,2);
@@ -223,34 +246,48 @@ int main() {
 			posori_task->_desired_position = xDes;
 			posori_task->_desired_velocity = vDes;
 
-			// update task model and set hierarchy
+			// Update task model and set hierarchy
 			N_prec.setIdentity();
 			posori_task->updateTaskModel(N_prec);
 			N_prec = posori_task->_N;
 			joint_task->updateTaskModel(N_prec);
 
-			// compute torques
+			// Compute torques
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
-
 			command_torques = posori_task_torques + joint_task_torques;
 
+            // Write the following attributes to their respective files
             trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
             des_trajectory << xDes.transpose() << ' ' << time << endl;
+            joints << robot->_q.transpose() << ' ' << time << endl;
+            velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
 
-			if ( (posori_task->_current_position - xDesF).norm() < 0.1 ) {
+            // Once the robot has reached close enough to the desired intermediate point, 
+            // change to the follow through controller 
+			if ( (posori_task->_current_position - xDesInter).norm() < 0.1 ) {
 				state = FOLLOW_THRU;
 			}
-		}
-		else if (state == FOLLOW_THRU) {
+		} 
+        else if (state == FOLLOW_THRU) 
+        {
+            /*
+             * Controller for the swing as it goes from the intermediate point, where
+             * it should have already hit the ball, to a follow through positon. This ensures
+             * that the EE kicks through the ball and doesn't abruptly stop after hitting the 
+             * ball.
+             */
 
-			double tTask = timer.elapsedTime() - taskStart_time;
+			// Initialize the task timer
+            double tTask = timer.elapsedTime() - taskStart_time;
 
+            // Define the desired EE trajectory based on the second half of the precalculated coefficients
  			Vector3d xDes = Vector3d(0.0,0.0,0.0);
  			xDes(0) = a[12] + a[15] * tTask + a[18] * pow(tTask,2) + a[21] * pow(tTask,3);
  			xDes(1) = a[13] + a[16] * tTask + a[19] * pow(tTask,2) + a[22] * pow(tTask,3);
  			xDes(2) = a[14] + a[17] * tTask + a[20] * pow(tTask,2) + a[23] * pow(tTask,3);
 
+            // Define the desired velocity based on the desired trajectory above
  			Vector3d vDes = Vector3d(0.0,0.0,0.0);
  			vDes(0) = a[15] + 2 * a[18] * tTask + 3 * a[21] * pow(tTask,2);
  			vDes(1) = a[16] + 2 * a[19] * tTask + 3 * a[22] * pow(tTask,2);
@@ -269,22 +306,27 @@ int main() {
 			// compute torques
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
-
+            command_torques = posori_task_torques + joint_task_torques;
+            
+            // Write the following attributes to their respective files
             trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
             des_trajectory << xDes.transpose() << ' ' << time << endl;
+            joints << robot->_q.transpose() << ' ' << time << endl;
+            velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
 
-            command_torques = posori_task_torques + joint_task_torques;
-
- 			Vector3d xDesF = Vector3d(0.4328,-0.2, 0.01);
+            // Once the arm is close enough to the final position, change the controller
+            // to hold the arm at that position
 			if ( (posori_task->_current_position - xDesF).norm() < 0.1 ) {
                 state = HOLD;
             }
+		} 
+        else if (state == HOLD) 
+        {
+            /*
+             * Hold the arm at the final position once the full swing motion has been completed.
+             */
 
-		} else if (state == HOLD) {
-
-			double tTask = timer.elapsedTime() - taskStart_time;
-
- 			Vector3d xDesF = Vector3d(0.4328,-0.2, 0.01);
+            // Set the desired position to be the final position
             posori_task->_desired_position = xDesF;
 
 			// update task model and set hierarchy
@@ -296,11 +338,13 @@ int main() {
 			// compute torques
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
-
-            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
-            des_trajectory << xDesF.transpose() << ' ' << time << endl;
-
             command_torques = posori_task_torques + joint_task_torques;
+
+            // Write the following attributes to their respective files
+            trajectory << posori_task->_current_position.transpose() << endl;
+            des_trajectory << xDesF.transpose() << endl;
+            joints << robot->_q.transpose() << endl;
+            velocity << posori_task->_current_velocity.transpose() << endl;
 		}
 
 		// send to redis
@@ -312,6 +356,8 @@ int main() {
 
     trajectory.close();
     des_trajectory.close();
+    joints.close();
+    velocity.close();
 
 	double end_time = timer.elapsedTime();
     std::cout << "\n";

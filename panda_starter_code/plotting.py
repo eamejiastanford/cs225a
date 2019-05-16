@@ -11,15 +11,20 @@ def parse_args():
 
     parser.add_argument('--position', '-p', help='Plot the EE trajectory', action='store_true')
     parser.add_argument('--joints', '-q', help='Plot the joint trajectory', action='store_true')
+    parser.add_argument('--velocity', '-v', help='Plot the EE velocity', action='store_true')
 
     args = parser.parse_args()
+
+    if noArgs:
+        parser.print_help()
+        sys.exit()
+
     return args
 
-def parse_ee_position(filename):
+def parse_ee_position_velocity(filename):
     x = []
     y = []
     z = []
-    t = []
     with open(filename, 'r') as infile:
         for line in infile:
             line = line.rstrip()
@@ -27,9 +32,8 @@ def parse_ee_position(filename):
             x.append(float(pos[0]))
             y.append(float(pos[1]))
             z.append(float(pos[2]))
-            t.append(float(pos[3]))
 
-    return x, y, z, t
+    return x, y, z
 
 def parse_phi(filename):
     x = []
@@ -62,11 +66,18 @@ def parse_joint_trajectories(filename):
     return joint
 
 if __name__ == "__main__":
+
+    # Ensures that the user has selected something to plot
+    noArgs = False
+    if len(sys.argv) == 1:
+        noArgs = True
+
     args = parse_args()
 
+
     if (args.position):
-        x, y, z, t = parse_ee_position("../bin/panda_starter_code/trajectory.txt")
-        xDes, yDes, zDes, tDes = parse_ee_position("../bin/panda_starter_code/des_trajectory.txt")
+        x, y, z = parse_ee_position_velocity("../bin/panda_starter_code/trajectory.txt")
+        xDes, yDes, zDes = parse_ee_position_velocity("../bin/panda_starter_code/des_trajectory.txt")
 
         print("Plotting EE position...")
 
@@ -78,30 +89,98 @@ if __name__ == "__main__":
         plt.xlabel("x")
         ax.plot3D(x, y, z)
         ax.plot3D(xDes, yDes, zDes)
-        legend = ["Actial", "Desired"]
+        legend = ["Actual", "Desired"]
         plt.legend(legend, loc=1)
-        plt.show()
 
     if (args.joints):
-        x, y, z, t = parse_joint_trajectories("joints.txt")
+        q = parse_joint_trajectories("../bin/panda_starter_code/joints.txt")
 
         print("Plotting joint trajectories...")
-        f = plt.figure(2)
 
-        plt.title("Joint Angle Trajectories for Controller {}".format(problemNum))
+        q_bounds = {'0u':[], '0l':[], 
+                '1u':[], '1l':[], 
+                '2u':[], '2l':[], 
+                '3u':[], '3l':[], 
+                '4u':[], '4l':[], 
+                '5u':[], '5l':[], 
+                '6u':[], '6l':[]
+                }
+        for i in q[0]:
+            q_bounds['0u'].append(2.8973)
+            q_bounds['0l'].append(-2.8973)
+            q_bounds['1u'].append(1.7628)
+            q_bounds['1l'].append(-1.7628)
+            q_bounds['2u'].append(2.8973)
+            q_bounds['2l'].append(-2.8973)
+            q_bounds['3u'].append(-0.0698)
+            q_bounds['3l'].append(-3.0718)
+            q_bounds['4u'].append(2.8973)
+            q_bounds['4l'].append(-2.8973)
+            q_bounds['5u'].append(3.7525)
+            q_bounds['5l'].append(-0.0175)
+            q_bounds['6u'].append(2.8973)
+            q_bounds['6l'].append(-2.8973)
+
+
+        f = plt.figure(2)
+        plt.title("Joints 1 & 2 Angle Trajectories")
         plt.ylabel("rad")
         plt.xlabel("time")
-        plt.plot(t, q[0])
-        plt.plot(t, q[1])
-        plt.plot(t, q[2])
-        plt.plot(t, q[3])
-        plt.plot(t, q[4])
-        plt.plot(t, q[5])
-        plt.plot(t, q[6])
-        legend = ["Joint 1", "Joint 2", "Joint 3", "Joint 4", "Joint 5", "Joint 6"]
+        plt.plot(q[0])
+        plt.plot(q[1])
+        plt.plot(q_bounds['0u'])
+        plt.plot(q_bounds['0l'])
+        plt.plot(q_bounds['1u'])
+        plt.plot(q_bounds['1l'])
+        legend = ["Joint 1", "Joint 2", "Joint 1 Upper", "Joint 1 Lower", "Joint 2 Upper", "Joint 2 Lower"]
         plt.legend(legend, loc=1)
 
-        plt.show()
+        g = plt.figure(3)
+        plt.title("Joints 3 & 4 Angle Trajectories")
+        plt.ylabel("rad")
+        plt.xlabel("time")
+        plt.plot(q[2])
+        plt.plot(q[3])
+        plt.plot(q_bounds['2u'])
+        plt.plot(q_bounds['2l'])
+        plt.plot(q_bounds['3u'])
+        plt.plot(q_bounds['3l'])
+        legend = ["Joint 3", "Joint 4", "Joint 3 Upper", "Joint 3 Lower", "Joint 4 Upper", "Joint 4 Lower"]
+        plt.legend(legend, loc=1)
+
+        h = plt.figure(4)
+        plt.title("Joints 5-7 Angle Trajectories")
+        plt.ylabel("rad")
+        plt.xlabel("time")
+        plt.plot(q[4])
+        plt.plot(q[5])
+        plt.plot(q[6])
+        plt.plot(q_bounds['4u'])
+        plt.plot(q_bounds['4l'])
+        plt.plot(q_bounds['5u'])
+        plt.plot(q_bounds['5l'])
+        plt.plot(q_bounds['6u'])
+        plt.plot(q_bounds['6l'])
+        legend = ["Joint 5", "Joint 6", "Joint 7", "Joint 5 Upper", "Joint 5 Lower", "Joint 6 Upper", "Joint 6 Lower", "Joint 7 Upper", "Joint 7 Lower"]
+        plt.legend(legend, loc=1)
+
+    if (args.velocity):
+        vx, vy, vz = parse_ee_position_velocity("../bin/panda_starter_code/velocity.txt")
+
+        print("Plotting EE velocity...")
+
+        f = plt.figure(5)
+
+        plt.title("EE Trajectories")
+        plt.ylabel("m/s")
+        plt.xlabel("time")
+        plt.plot(vx)
+        plt.plot(vy)
+        plt.plot(vz)
+        legend = ["Vx", "Vy", "Vz"]
+        plt.legend(legend, loc=1)
+
+    plt.show()
 
     '''
     elif (problemNum == 2):
