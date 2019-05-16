@@ -120,6 +120,7 @@ int main() {
 	VectorXd q_init_desired = initial_q;
     // Desired initial q
 	q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.994309, 2.5031, 1.38538;
+	//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
 	//q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
 
