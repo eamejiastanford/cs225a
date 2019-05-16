@@ -93,9 +93,9 @@ int main() {
 	auto posori_task = new Sai2Primitives::PosOriTask(robot, control_link, control_point);
 
 #ifdef USING_OTG
-	posori_task->_use_interpolation_flag = true;
+	posori_task->_use_interpolation_flag = false;
 #else
-	posori_task->_use_velocity_saturation_flag = true;
+	posori_task->_use_velocity_saturation_flag = false;
 #endif
 	
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
@@ -108,9 +108,9 @@ int main() {
 	auto joint_task = new Sai2Primitives::JointTask(robot);
 
 #ifdef USING_OTG
-	joint_task->_use_interpolation_flag = true;
+	joint_task->_use_interpolation_flag = false;
 #else
-	joint_task->_use_velocity_saturation_flag = true;
+	joint_task->_use_velocity_saturation_flag = false;
 #endif
 
 	VectorXd joint_task_torques = VectorXd::Zero(dof);
@@ -173,11 +173,6 @@ int main() {
 
 			command_torques = joint_task_torques;
 
-			Vector3d posEE = Vector3d::Zero();
-			robot->position(posEE, control_link, control_point);
-
-			cout << posEE(0) << "," << posEE(1) << "," << posEE(2) << endl;
-
 			if( (robot->_q - q_init_desired).norm() < 0.15 )
 			{
 				posori_task->reInitializeTask();
@@ -219,12 +214,13 @@ int main() {
  			xDes(2) = c0 + c1 * tTask + c2 * pow(tTask,2) + c3 * pow(tTask,3);
 
  			Vector3d vDes = Vector3d(0.0,0.0,0.0);
- 			vDes(0) = a1 + a2 * pow(tTask,1) + a3 * pow(tTask,2);
- 			vDes(1) = b1 + b2 * pow(tTask,1) + b3 * pow(tTask,2);
- 			vDes(2) = c1 + c2 * pow(tTask,1) + c3 * pow(tTask,2);
+ 			vDes(0) = a1 + 2 * a2 * pow(tTask,1) + 3 * a3 * pow(tTask,2);
+ 			vDes(1) = b1 + 2 * b2 * pow(tTask,1) + 3 * b3 * pow(tTask,2);
+ 			vDes(2) = c1 + 2 * c2 * pow(tTask,1) + 3 * c3 * pow(tTask,2);
 
  			double tf = 3;
- 			Vector3d xDesF = Vector3d(0.0,0.0,0.0);
+ 			//Vector3d xDesF = Vector3d(0.0,0.0,0.0);
+ 			Vector3d xDesF = Vector3d(0.4328,0.09829, 0.01);
  			xDesF(0) = a0 + a1 * tf + a2 * pow(tf,2) + a3 * pow(tf,3);
  			xDesF(1) = b0 + b1 * tf + b2 * pow(tf,2) + b3 * pow(tf,3);
  			xDesF(2) = c0 + c1 * tf + c2 * pow(tf,2) + c3 * pow(tf,3);
@@ -244,15 +240,7 @@ int main() {
 
 			command_torques = posori_task_torques + joint_task_torques;
 
-			Vector3d posEE = Vector3d::Zero();
-			robot->position(posEE, control_link, control_point);
-
-			cout << posEE(0) << "," << posEE(1) << "," << posEE(2) << endl;
-
-			if ( (posEE - xDesF).norm() < 0.1 ) {
-				state = 3;
-			}
-			else if ( posEE(2) < 0.05  && posEE(1) > 0.1 ) {
+			if ( (posori_task->_current_position - xDesF).norm() < 0.2 ) {
 				state = 3;
 			}
 		}
