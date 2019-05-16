@@ -65,17 +65,8 @@ if __name__ == "__main__":
     args = parse_args()
 
     if (args.position):
-        x, y, z, t = parse_ee_position("trajectory.txt")
-        xDes, yDes, zDes, tDes = parse_ee_position("des_trajectory.txt")
-
-        print(len(x))
-        print(len(xDes))
-
-        #desiredPos = {"x":[], "y":[], "z":[]}
-        #for i in t:
-            #desiredPos["x"].append(0.3 + 0.1*np.sin(np.pi*i))
-            #desiredPos["y"].append(0.1 + 0.1*np.cos(np.pi*i))
-            #desiredPos["z"].append(0.5)
+        x, y, z, t = parse_ee_position("../bin/panda_starter_code/trajectory.txt")
+        xDes, yDes, zDes, tDes = parse_ee_position("../bin/panda_starter_code/des_trajectory.txt")
 
         print("Plotting EE position...")
 
