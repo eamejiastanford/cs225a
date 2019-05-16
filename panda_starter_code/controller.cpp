@@ -24,7 +24,15 @@ const string robot_file = "./resources/panda_arm.urdf";
 #define JOINT_CONTROLLER      0
 #define POSORI_CONTROLLER     1
 
-int state = JOINT_CONTROLLER;
+enum STATE {
+    READY_POSITION,
+    SWING,
+    FOLLOW_THRU,
+    HOLD
+};
+
+STATE state = READY_POSITION;
+//int state = JOINT_CONTROLLER;
 
 // redis keys:
 // - read:
@@ -99,7 +107,7 @@ int main() {
 #endif
 	
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
-	posori_task->_kp_pos = 2000.0;
+	posori_task->_kp_pos = 200.0;
 	posori_task->_kv_pos = 20.0;
 	posori_task->_kp_ori = 200.0;
 	posori_task->_kv_ori = 20.0;
@@ -135,6 +143,13 @@ int main() {
     // For printing trajectory to file 
     ofstream trajectory;
     trajectory.open("trajectory.txt");
+    
+    // For printing desired trajectory to file 
+    ofstream des_trajectory;
+    des_trajectory.open("des_trajectory.txt");
+
+    VectorXd a(24);
+    a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.311859, 0.319496, -2.510322, -0.207906, -0.679664, 1.673548, 0.4328, -0.170849917695474, 0.01, 0, -0.608469135802469, 0, 0, 3.42435802469136, 0, 0, -2.54674897119342, 0;
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -163,7 +178,7 @@ int main() {
 			robot->_M_inv = robot->_M.inverse();
 		}
 
-		if(state == JOINT_CONTROLLER)
+		if(state == READY_POSITION)
 		{
 			// update task model and set hierarchy
 			N_prec.setIdentity();
@@ -177,54 +192,33 @@ int main() {
 			if( (robot->_q - q_init_desired).norm() < 0.15 )
 			{
 				posori_task->reInitializeTask();
-				//posori_task->_desired_position = Vector3d(0.4328,0.09829, 0.01);
-				posori_task->_desired_position += Vector3d(-0.0,0.0,0.0);
+				posori_task->_desired_position += Vector3d(0.0,0.0,0.0);
 				posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
                 cout << posori_task->_current_position.transpose() << ' ' << time << endl;
 
 				joint_task->reInitializeTask();
 				joint_task->_kp = 0;
 
-				state = POSORI_CONTROLLER;
+				state = SWING;
 				taskStart_time = timer.elapsedTime();
 			}
 		}
 
-		else if(state == POSORI_CONTROLLER)
+		else if(state == SWING)
 		{
 			double tTask = timer.elapsedTime() - taskStart_time;
 
- 			float a0 = 0.3414;
- 			float a1 = 0.0;
- 			float a2 = 0.0305;
- 			float a3 = -0.0068;
-
- 			float b0 = 0.4220;
- 			float b1 = 0.0;
- 			float b2 = 0.2254;
- 			float b3 = -0.0871;
-
- 			float c0 = 0.9655;
- 			float c1 = 0.0;
- 			float c2 = -0.3185;
- 			float c3 = 0.0708;
-
  			Vector3d xDes = Vector3d(0.0,0.0,0.0);
- 			xDes(0) = a0 + a1 * tTask + a2 * pow(tTask,2) + a3 * pow(tTask,3);
- 			xDes(1) = b0 + b1 * tTask + b2 * pow(tTask,2) + b3 * pow(tTask,3);
- 			xDes(2) = c0 + c1 * tTask + c2 * pow(tTask,2) + c3 * pow(tTask,3);
+ 			xDes(0) = a[0] + a[3] * tTask + a[6] * pow(tTask,2) + a[9] * pow(tTask,3);
+ 			xDes(1) = a[1] + a[4] * tTask + a[7] * pow(tTask,2) + a[10] * pow(tTask,3);
+ 			xDes(2) = a[2] + a[5] * tTask + a[8] * pow(tTask,2) + a[11] * pow(tTask,3);
+
+ 			Vector3d xDesF = Vector3d(0.4328,0.09829, 0.01);
 
  			Vector3d vDes = Vector3d(0.0,0.0,0.0);
- 			vDes(0) = a1 + 2 * a2 * pow(tTask,1) + 3 * a3 * pow(tTask,2);
- 			vDes(1) = b1 + 2 * b2 * pow(tTask,1) + 3 * b3 * pow(tTask,2);
- 			vDes(2) = c1 + 2 * c2 * pow(tTask,1) + 3 * c3 * pow(tTask,2);
-
- 			double tf = 3;
- 			//Vector3d xDesF = Vector3d(0.0,0.0,0.0);
- 			Vector3d xDesF = Vector3d(0.4328,0.09829, 0.01);
- 			xDesF(0) = a0 + a1 * tf + a2 * pow(tf,2) + a3 * pow(tf,3);
- 			xDesF(1) = b0 + b1 * tf + b2 * pow(tf,2) + b3 * pow(tf,3);
- 			xDesF(2) = c0 + c1 * tf + c2 * pow(tf,2) + c3 * pow(tf,3);
+ 			vDes(0) = a[3] + 2 * a[6] * tTask + 3 * a[9] * pow(tTask,2);
+ 			vDes(1) = a[4] + 2 * a[7] * tTask + 3 * a[10] * pow(tTask,2);
+ 			vDes(2) = a[5] + 2 * a[8] * tTask + 3 * a[11] * pow(tTask,2);
 
 			posori_task->_desired_position = xDes;
 			posori_task->_desired_velocity = vDes;
@@ -241,15 +235,23 @@ int main() {
 
 			command_torques = posori_task_torques + joint_task_torques;
 
-			if ( (posori_task->_current_position - xDesF).norm() < 0.2 ) {
-				state = 3;
+            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
+            des_trajectory << xDes.transpose() << ' ' << time << endl;
+
+			if ( (posori_task->_current_position - xDesF).norm() < 0.1 ) {
+				state = FOLLOW_THRU;
 			}
 		}
-		else if (state == 3) {
-			Vector3d posEE = Vector3d::Zero();
-			robot->position(posEE, control_link, control_point);
+		else if (state == FOLLOW_THRU) {
 
-			posori_task->_desired_position = posEE;
+			double tTask = timer.elapsedTime() - taskStart_time;
+
+ 			Vector3d xDes = Vector3d(0.0,0.0,0.0);
+ 			xDes(0) = a[12] + a[15] * tTask + a[18] * pow(tTask,2) + a[21] * pow(tTask,3);
+ 			xDes(1) = a[13] + a[16] * tTask + a[19] * pow(tTask,2) + a[22] * pow(tTask,3);
+ 			xDes(2) = a[14] + a[17] * tTask + a[20] * pow(tTask,2) + a[23] * pow(tTask,3);
+
+            posori_task->_desired_position = xDes;
 
 			// update task model and set hierarchy
 			N_prec.setIdentity();
@@ -261,9 +263,37 @@ int main() {
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
 
-			command_torques = posori_task_torques + joint_task_torques;
+            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
+            des_trajectory << xDes.transpose() << ' ' << time << endl;
+
+            command_torques = posori_task_torques + joint_task_torques;
+
+ 			Vector3d xDesF = Vector3d(0.4328,-0.2, 0.01);
+			if ( (posori_task->_current_position - xDesF).norm() < 0.1 ) {
+                state = HOLD;
+            }
+
+		} else if (state == HOLD) {
+
+			double tTask = timer.elapsedTime() - taskStart_time;
+
+ 			Vector3d xDesF = Vector3d(0.4328,-0.2, 0.01);
+            posori_task->_desired_position = xDesF;
+
+			// update task model and set hierarchy
+			N_prec.setIdentity();
+			posori_task->updateTaskModel(N_prec);
+			N_prec = posori_task->_N;
+			joint_task->updateTaskModel(N_prec);
+
+			// compute torques
+			posori_task->computeTorques(posori_task_torques);
+			joint_task->computeTorques(joint_task_torques);
 
             trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
+            des_trajectory << xDesF.transpose() << ' ' << time << endl;
+
+            command_torques = posori_task_torques + joint_task_torques;
 		}
 
 		// send to redis
@@ -274,6 +304,7 @@ int main() {
 	}
 
     trajectory.close();
+    des_trajectory.close();
 
 	double end_time = timer.elapsedTime();
     std::cout << "\n";

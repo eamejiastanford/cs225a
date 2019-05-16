@@ -66,6 +66,10 @@ if __name__ == "__main__":
 
     if (args.position):
         x, y, z, t = parse_ee_position("trajectory.txt")
+        xDes, yDes, zDes, tDes = parse_ee_position("des_trajectory.txt")
+
+        print(len(x))
+        print(len(xDes))
 
         #desiredPos = {"x":[], "y":[], "z":[]}
         #for i in t:
@@ -79,9 +83,12 @@ if __name__ == "__main__":
         ax = plt.axes(projection='3d')
 
         plt.title("EE Trajectories")
-        plt.ylabel("pos")
-        plt.xlabel("time")
+        plt.ylabel("y")
+        plt.xlabel("x")
         ax.plot3D(x, y, z)
+        ax.plot3D(xDes, yDes, zDes)
+        legend = ["Actial", "Desired"]
+        plt.legend(legend, loc=1)
         plt.show()
 
     if (args.joints):
