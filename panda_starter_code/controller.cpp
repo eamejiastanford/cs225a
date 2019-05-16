@@ -251,7 +251,14 @@ int main() {
  			xDes(1) = a[13] + a[16] * tTask + a[19] * pow(tTask,2) + a[22] * pow(tTask,3);
  			xDes(2) = a[14] + a[17] * tTask + a[20] * pow(tTask,2) + a[23] * pow(tTask,3);
 
+ 			Vector3d vDes = Vector3d(0.0,0.0,0.0);
+ 			vDes(0) = a[15] + 2 * a[18] * tTask + 3 * a[21] * pow(tTask,2);
+ 			vDes(1) = a[16] + 2 * a[19] * tTask + 3 * a[22] * pow(tTask,2);
+ 			vDes(2) = a[17] + 2 * a[20] * tTask + 3 * a[23] * pow(tTask,2);
+
+
             posori_task->_desired_position = xDes;
+			posori_task->_desired_velocity = vDes;
 
 			// update task model and set hierarchy
 			N_prec.setIdentity();
