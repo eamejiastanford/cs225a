@@ -47,6 +47,7 @@ const bool inertia_regularization = true;
 
 int main() {
 
+	// Choose where to get sensor values
 	if(flag_simulation)
 	{
 		JOINT_ANGLES_KEY = "sai2::cs225a::panda_robot::sensors::q";
@@ -97,7 +98,7 @@ int main() {
 #endif
 	
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
-	posori_task->_kp_pos = 200.0;
+	posori_task->_kp_pos = 2000.0;
 	posori_task->_kv_pos = 20.0;
 	posori_task->_kp_ori = 200.0;
 	posori_task->_kv_ori = 20.0;
@@ -116,8 +117,8 @@ int main() {
 	joint_task->_kv = 15.0;
 
 	VectorXd q_init_desired = initial_q;
-	q_init_desired << -30.0, -15.0, -15.0, -105.0, 0.0, 90.0, 45.0;
-	q_init_desired *= M_PI/180.0;
+	q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.994309, 2.5031, 1.38538;
+	//q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
 
 	// create a timer
@@ -126,6 +127,7 @@ int main() {
 	timer.setLoopFrequency(1000); 
 	double start_time = timer.elapsedTime(); //secs
 	bool fTimerDidSleep = true;
+	double taskStart_time = 0.0;
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -165,21 +167,95 @@ int main() {
 
 			command_torques = joint_task_torques;
 
+			Vector3d posEE = Vector3d::Zero();
+			robot->position(posEE, control_link, control_point);
+
+			cout << posEE(0) << "," << posEE(1) << "," << posEE(2) << endl;
+
 			if( (robot->_q - q_init_desired).norm() < 0.15 )
 			{
 				posori_task->reInitializeTask();
-				posori_task->_desired_position += Vector3d(-0.1,0.1,0.1);
-				posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
+				posori_task->_desired_position += Vector3d(-0.0,0.0,0.0);
+				posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 
 				joint_task->reInitializeTask();
 				joint_task->_kp = 0;
 
 				state = POSORI_CONTROLLER;
+
+				taskStart_time = timer.elapsedTime();
+
 			}
 		}
 
 		else if(state == POSORI_CONTROLLER)
 		{
+			double tTask = timer.elapsedTime() - taskStart_time;
+
+ 			float a0 = 0.3414;
+ 			float a1 = 0.0;
+ 			float a2 = 0.0305;
+ 			float a3 = -0.0068;
+
+ 			float b0 = 0.4220;
+ 			float b1 = 0.0;
+ 			float b2 = 0.2254;
+ 			float b3 = -0.0871;
+
+ 			float c0 = 0.9655;
+ 			float c1 = 0.0;
+ 			float c2 = -0.3185;
+ 			float c3 = 0.0708;
+
+ 			Vector3d xDes = Vector3d(0.0,0.0,0.0);
+ 			xDes(0) = a0 + a1 * tTask + a2 * pow(tTask,2) + a3 * pow(tTask,3);
+ 			xDes(1) = b0 + b1 * tTask + b2 * pow(tTask,2) + b3 * pow(tTask,3);
+ 			xDes(2) = c0 + c1 * tTask + c2 * pow(tTask,2) + c3 * pow(tTask,3);
+
+ 			Vector3d vDes = Vector3d(0.0,0.0,0.0);
+ 			vDes(0) = a1 + a2 * pow(tTask,1) + a3 * pow(tTask,2);
+ 			vDes(1) = b1 + b2 * pow(tTask,1) + b3 * pow(tTask,2);
+ 			vDes(2) = c1 + c2 * pow(tTask,1) + c3 * pow(tTask,2);
+
+ 			double tf = 3;
+ 			Vector3d xDesF = Vector3d(0.0,0.0,0.0);
+ 			xDesF(0) = a0 + a1 * tf + a2 * pow(tf,2) + a3 * pow(tf,3);
+ 			xDesF(1) = b0 + b1 * tf + b2 * pow(tf,2) + b3 * pow(tf,3);
+ 			xDesF(2) = c0 + c1 * tf + c2 * pow(tf,2) + c3 * pow(tf,3);
+
+			posori_task->_desired_position = xDes;
+			posori_task->_desired_velocity = vDes;
+
+			// update task model and set hierarchy
+			N_prec.setIdentity();
+			posori_task->updateTaskModel(N_prec);
+			N_prec = posori_task->_N;
+			joint_task->updateTaskModel(N_prec);
+
+			// compute torques
+			posori_task->computeTorques(posori_task_torques);
+			joint_task->computeTorques(joint_task_torques);
+
+			command_torques = posori_task_torques + joint_task_torques;
+
+			Vector3d posEE = Vector3d::Zero();
+			robot->position(posEE, control_link, control_point);
+
+			cout << posEE(0) << "," << posEE(1) << "," << posEE(2) << endl;
+
+			if ( (posEE - xDesF).norm() < 0.1 ) {
+				state = 3;
+			}
+			else if ( posEE(2) < 0.05  && posEE(1) > 0.1 ) {
+				state = 3;
+			}
+		}
+		else if (state == 3) {
+			Vector3d posEE = Vector3d::Zero();
+			robot->position(posEE, control_link, control_point);
+
+			posori_task->_desired_position = posEE;
+
 			// update task model and set hierarchy
 			N_prec.setIdentity();
 			posori_task->updateTaskModel(N_prec);
