@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
 
 #include <signal.h>
 bool runloop = true;
@@ -117,6 +118,7 @@ int main() {
 	joint_task->_kv = 15.0;
 
 	VectorXd q_init_desired = initial_q;
+    // Desired initial q
 	q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.994309, 2.5031, 1.38538;
 	//q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
@@ -129,9 +131,9 @@ int main() {
 	bool fTimerDidSleep = true;
 	double taskStart_time = 0.0;
 
-    const string link_name = "link7";
-    const Vector3d pos_in_link = Vector3d(0, 0, 0.05);
-    Vector3d current_x(3);
+    // For printing trajectory to file 
+    ofstream trajectory;
+    trajectory.open("trajectory.txt");
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -182,14 +184,13 @@ int main() {
 				//posori_task->_desired_position = Vector3d(0.4328,0.09829, 0.01);
 				posori_task->_desired_position += Vector3d(-0.0,0.0,0.0);
 				posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
+                cout << posori_task->_current_position.transpose() << ' ' << time << endl;
 
 				joint_task->reInitializeTask();
 				joint_task->_kp = 0;
 
 				state = POSORI_CONTROLLER;
-
 				taskStart_time = timer.elapsedTime();
-
 			}
 		}
 
@@ -272,6 +273,8 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
 
 			command_torques = posori_task_torques + joint_task_torques;
+
+            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
 		}
 
 		// send to redis
@@ -280,6 +283,8 @@ int main() {
 		controller_counter++;
 
 	}
+
+    trajectory.close();
 
 	double end_time = timer.elapsedTime();
     std::cout << "\n";
