@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
 
 #include <signal.h>
 bool runloop = true;
@@ -117,7 +118,6 @@ int main() {
 
 	VectorXd q_init_desired = initial_q;
     // Desired initial q
-    // 1.47471
 	q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.994309, 2.5031, 1.38538;
 	//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
 	//q_init_desired *= M_PI/180.0;
@@ -128,11 +128,12 @@ int main() {
 	timer.initializeTimer();
 	timer.setLoopFrequency(1000); 
 	double start_time = timer.elapsedTime(); //secs
+	double change_time = timer.elapsedTime(); //secs
 	bool fTimerDidSleep = true;
 
-    const string link_name = "link7";
-    const Vector3d pos_in_link = Vector3d(0, 0, 0.05);
-    Vector3d current_x(3);
+    // For printing trajectory to file 
+    ofstream trajectory;
+    trajectory.open("trajectory.txt");
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -176,20 +177,32 @@ int main() {
 			{
 				posori_task->reInitializeTask();
 
-                robot->position(current_x, link_name, pos_in_link);
-                cout << current_x.transpose() << endl;
-				posori_task->_desired_position = Vector3d(0.4328,0.09829, 0.01);
+				//posori_task->_desired_position = posori_task->_current_position;
+				posori_task->_desired_velocity = Vector3d(2.0,2.0,2.0);
+				posori_task->_desired_position = Vector3d(0.4328,0.09829, 0.01); // original testing position
 				posori_task->_desired_orientation = AngleAxisd(-M_PI/12, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
+                cout << posori_task->_current_position.transpose() << ' ' << time << endl;
+                //posori_task->_use_velocity_saturation_flag = true;
 
 				joint_task->reInitializeTask();
 				joint_task->_kp = 0;
 
 				state = POSORI_CONTROLLER;
+                change_time = timer.elapsedTime();
 			}
 		}
 
 		else if(state == POSORI_CONTROLLER)
 		{
+            double xdes = 0.361113;
+            double ydes = -0.04918877*pow((timer.elapsedTime() - change_time),2.0);
+            double zdes = 2*0.04918877*(timer.elapsedTime() - change_time);
+            //double ydes = -0.04918877*pow((timer.elapsedTime() - change_time - 1),2.0);
+            //double zdes = 2*0.04918877*(timer.elapsedTime() - change_time - 1);
+            Vector3d circle = Vector3d(0, cos(M_PI*time), sin(M_PI*time));
+            Vector3d desired_x_circle = Vector3d(0.4328,0.09829, 0.01) + 0.2*circle;
+            //posori_task->_desired_position = desired_x_circle;
+            //posori_task->_desired_position = Vector3d(xdes, ydes, zdes);
 			// update task model and set hierarchy
 			N_prec.setIdentity();
 			posori_task->updateTaskModel(N_prec);
@@ -201,6 +214,8 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
 
 			command_torques = posori_task_torques + joint_task_torques;
+
+            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
 		}
 
 		// send to redis
@@ -209,6 +224,8 @@ int main() {
 		controller_counter++;
 
 	}
+
+    trajectory.close();
 
 	double end_time = timer.elapsedTime();
     std::cout << "\n";
