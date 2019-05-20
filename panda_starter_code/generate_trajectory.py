@@ -58,8 +58,8 @@ def calculateCoefficients(startPos, interPos, endPos, startVel, endVel, tmid, tf
         [endVel[1]],
         [endVel[2]],
         [0],
-        [-1.4],
-        [0]
+        [-0.5],
+        [0.1]
         ])
 
     return linsolve((A,b))
@@ -68,15 +68,13 @@ if __name__ == '__main__':
 
     # Define the initial conditions
     startPos = np.array([0.328847, 0.458458, 0.846774])
-    endPos = np.array([0.4328,-0.2, 0.01])
+    endPos = np.array([0.4328,-0.2, 0.15])
 
-    tmid = 1
+    tmid = 1.5
     tfinal = 0.1
 
     # Define the intermediate point
-    #interPos = np.array([5, -3])
-    #interPos = np.array([-3, 3])
-    interPos = np.array([0.4328,0.09829, 0.01])
+    interPos = np.array([0.4328,0.09829, 0.10])
 
     # Define the starting and ending velocities
     startVel = endVel = np.zeros(3)

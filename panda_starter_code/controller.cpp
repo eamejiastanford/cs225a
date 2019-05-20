@@ -157,12 +157,13 @@ int main() {
 
     // Coefficients for the polynomial trajectory
     VectorXd a(24);
-    a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.311859, 0.319496, -2.510322, -0.207906, -0.679664, 1.673548, 0.4328, -0.170849917695474, 0.01, 0, -0.608469135802469, 0, 0, 3.42435802469136, 0, 0, -2.54674897119342, 0;
+    //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.311859, 0.319496, -2.510322, -0.207906, -0.679664, 1.673548, 0.4328, -0.170849917695474, 0.01, 0, -0.608469135802469, 0, 0, 3.42435802469136, 0, 0, -2.54674897119342, 0;
+    a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.138604, -0.146890666666667, -1.06236533333333, -0.0616017777777778, -0.00878933333333333, 0.486977185185185, 0.4328, -0.191390393586006, 0.148432944606414, 0, -0.176917274052478, 0.0322157434402332, 0, 0.955463556851311, -0.174198250728863, 0, -0.472514577259475, 0.0874635568513119;
 
     // Intermediate point of the trajectory
-    Vector3d xDesInter = Vector3d(0.4328,0.09829, 0.01);
+    Vector3d xDesInter = Vector3d(0.4328,0.09829, 0.10);
     // End point of the trajectory
-    Vector3d xDesF = Vector3d(0.4328,-0.2, 0.01);
+    Vector3d xDesF = Vector3d(0.4328,-0.2, 0.15);
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -201,6 +202,7 @@ int main() {
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
 			joint_task->updateTaskModel(N_prec);
+            joint_task->_use_velocity_saturation_flag = true;
 
 			// Compute torques
 			joint_task->computeTorques(joint_task_torques);
@@ -212,9 +214,11 @@ int main() {
 			if( (robot->_q - q_init_desired).norm() < 0.15 )
 			{
 				posori_task->reInitializeTask();
+                posori_task->_use_velocity_saturation_flag = false;
 				posori_task->_desired_position += Vector3d(0.0,0.0,0.0);
 				posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 				joint_task->reInitializeTask();
+                joint_task->_use_velocity_saturation_flag = false;
 				joint_task->_kp = 0;
 				state = SWING;
 				taskStart_time = timer.elapsedTime();

@@ -92,6 +92,14 @@ if __name__ == "__main__":
         legend = ["Actual", "Desired"]
         plt.legend(legend, loc=1)
 
+        f = plt.figure(2)
+        plt.title("Joints 1 & 2 Angle Trajectories")
+        plt.ylabel("z")
+        plt.xlabel("time")
+        plt.plot(z)
+        legend = ["Z"]
+        plt.legend(legend, loc=1)
+
     if (args.joints):
         q = parse_joint_trajectories("../bin/panda_starter_code/joints.txt")
 
@@ -106,20 +114,20 @@ if __name__ == "__main__":
                 '6u':[], '6l':[]
                 }
         for i in q[0]:
-            q_bounds['0u'].append(2.8973)
-            q_bounds['0l'].append(-2.8973)
-            q_bounds['1u'].append(1.7628)
-            q_bounds['1l'].append(-1.7628)
-            q_bounds['2u'].append(2.8973)
-            q_bounds['2l'].append(-2.8973)
-            q_bounds['3u'].append(-0.0698)
-            q_bounds['3l'].append(-3.0718)
-            q_bounds['4u'].append(2.8973)
-            q_bounds['4l'].append(-2.8973)
-            q_bounds['5u'].append(3.7525)
-            q_bounds['5l'].append(-0.0175)
-            q_bounds['6u'].append(2.8973)
-            q_bounds['6l'].append(-2.8973)
+            q_bounds['0u'].append(2.7)
+            q_bounds['0l'].append(-2.7)
+            q_bounds['1u'].append(1.6)
+            q_bounds['1l'].append(-1.6)
+            q_bounds['2u'].append(2.7)
+            q_bounds['2l'].append(-2.7)
+            q_bounds['3u'].append(-0.2)
+            q_bounds['3l'].append(-3.0)
+            q_bounds['4u'].append(2.7)
+            q_bounds['4l'].append(-2.7)
+            q_bounds['5u'].append(3.6)
+            q_bounds['5l'].append(0.2)
+            q_bounds['6u'].append(2.7)
+            q_bounds['6l'].append(-2.7)
 
 
         f = plt.figure(2)
