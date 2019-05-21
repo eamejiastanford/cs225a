@@ -12,6 +12,7 @@ def parse_args():
     parser.add_argument('--position', '-p', help='Plot the EE trajectory', action='store_true')
     parser.add_argument('--joints', '-q', help='Plot the joint trajectory', action='store_true')
     parser.add_argument('--velocity', '-v', help='Plot the EE velocity', action='store_true')
+    parser.add_argument('--torques', '-t', help='Plot the joint torques', action='store_true')
 
     args = parser.parse_args()
 
@@ -93,11 +94,13 @@ if __name__ == "__main__":
         plt.legend(legend, loc=1)
 
         f = plt.figure(2)
-        plt.title("Joints 1 & 2 Angle Trajectories")
-        plt.ylabel("z")
+        plt.title("EE trajectory")
+        plt.ylabel("pos")
         plt.xlabel("time")
+        plt.plot(x)
+        plt.plot(y)
         plt.plot(z)
-        legend = ["Z"]
+        legend = ["X", "Y", "Z"]
         plt.legend(legend, loc=1)
 
     if (args.joints):
@@ -179,13 +182,30 @@ if __name__ == "__main__":
 
         f = plt.figure(5)
 
-        plt.title("EE Trajectories")
+        plt.title("EE Velocity")
         plt.ylabel("m/s")
         plt.xlabel("time")
         plt.plot(vx)
         plt.plot(vy)
         plt.plot(vz)
         legend = ["Vx", "Vy", "Vz"]
+        plt.legend(legend, loc=1)
+
+    if (args.torques):
+        tau = parse_joint_trajectories("../bin/panda_starter_code/torques.txt")
+
+        f = plt.figure(6)
+        plt.title("Joint Torques")
+        plt.ylabel("rad")
+        plt.xlabel("time")
+        plt.plot(tau[0])
+        plt.plot(tau[1])
+        plt.plot(tau[2])
+        plt.plot(tau[3])
+        plt.plot(tau[4])
+        plt.plot(tau[5])
+        plt.plot(tau[6])
+        legend = ["Joint 1", "Joint 2", "Joint 3", "Joint 4", "Joint 5", "Joint 6", "Joint 7"]
         plt.legend(legend, loc=1)
 
     plt.show()
