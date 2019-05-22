@@ -13,6 +13,7 @@ def parse_args():
     parser.add_argument('--joints', '-q', help='Plot the joint trajectory', action='store_true')
     parser.add_argument('--velocity', '-v', help='Plot the EE velocity', action='store_true')
     parser.add_argument('--torques', '-t', help='Plot the joint torques', action='store_true')
+    parser.add_argument('--joint_velocity', '-j', help='Plot the joint velocities', action='store_true')
 
     args = parser.parse_args()
 
@@ -26,6 +27,7 @@ def parse_ee_position_velocity(filename):
     x = []
     y = []
     z = []
+    t = []
     with open(filename, 'r') as infile:
         for line in infile:
             line = line.rstrip()
@@ -33,8 +35,9 @@ def parse_ee_position_velocity(filename):
             x.append(float(pos[0]))
             y.append(float(pos[1]))
             z.append(float(pos[2]))
+            t.append(float(pos[3]))
 
-    return x, y, z
+    return x, y, z, t
 
 def parse_phi(filename):
     x = []
@@ -51,7 +54,7 @@ def parse_phi(filename):
     return x, y, z
 
 def parse_joint_trajectories(filename):
-    joint = [[] for i in range(7)]
+    joint = [[] for i in range(8)]
     with open(filename, 'r') as infile:
         for line in infile:
             line = line.rstrip()
@@ -63,6 +66,7 @@ def parse_joint_trajectories(filename):
             joint[4].append(float(line[4]))
             joint[5].append(float(line[5]))
             joint[6].append(float(line[6]))
+            joint[7].append(float(line[7]))
 
     return joint
 
@@ -77,8 +81,8 @@ if __name__ == "__main__":
 
 
     if (args.position):
-        x, y, z = parse_ee_position_velocity("../bin/panda_starter_code/trajectory.txt")
-        xDes, yDes, zDes = parse_ee_position_velocity("../bin/panda_starter_code/des_trajectory.txt")
+        x, y, z, t = parse_ee_position_velocity("../bin/panda_starter_code/trajectory.txt")
+        xDes, yDes, zDes, t = parse_ee_position_velocity("../bin/panda_starter_code/des_trajectory.txt")
 
         print("Plotting EE position...")
 
@@ -93,6 +97,7 @@ if __name__ == "__main__":
         legend = ["Actual", "Desired"]
         plt.legend(legend, loc=1)
 
+        '''
         f = plt.figure(2)
         plt.title("EE trajectory")
         plt.ylabel("pos")
@@ -102,6 +107,7 @@ if __name__ == "__main__":
         plt.plot(z)
         legend = ["X", "Y", "Z"]
         plt.legend(legend, loc=1)
+        '''
 
     if (args.joints):
         q = parse_joint_trajectories("../bin/panda_starter_code/joints.txt")
@@ -176,7 +182,7 @@ if __name__ == "__main__":
         plt.legend(legend, loc=1)
 
     if (args.velocity):
-        vx, vy, vz = parse_ee_position_velocity("../bin/panda_starter_code/velocity.txt")
+        vx, vy, vz, t = parse_ee_position_velocity("../bin/panda_starter_code/velocity.txt")
 
         print("Plotting EE velocity...")
 
@@ -185,14 +191,16 @@ if __name__ == "__main__":
         plt.title("EE Velocity")
         plt.ylabel("m/s")
         plt.xlabel("time")
-        plt.plot(vx)
-        plt.plot(vy)
-        plt.plot(vz)
+        plt.plot(t, vx)
+        plt.plot(t, vy)
+        plt.plot(t, vz)
         legend = ["Vx", "Vy", "Vz"]
         plt.legend(legend, loc=1)
 
     if (args.torques):
         tau = parse_joint_trajectories("../bin/panda_starter_code/torques.txt")
+
+        print("Plotting joint trajectories...")
 
         f = plt.figure(6)
         plt.title("Joint Torques")
@@ -205,6 +213,25 @@ if __name__ == "__main__":
         plt.plot(tau[4])
         plt.plot(tau[5])
         plt.plot(tau[6])
+        legend = ["Joint 1", "Joint 2", "Joint 3", "Joint 4", "Joint 5", "Joint 6", "Joint 7"]
+        plt.legend(legend, loc=1)
+
+    if (args.joint_velocity):
+        q_v = parse_joint_trajectories("../bin/panda_starter_code/joint_velocity.txt")
+
+        print("Plotting joint velocities...")
+
+        f = plt.figure(7)
+        plt.title("Joint Velocities")
+        plt.ylabel("rad/s")
+        plt.xlabel("time")
+        plt.plot(q_v[7], q_v[0])
+        plt.plot(q_v[7], q_v[1])
+        plt.plot(q_v[7], q_v[2])
+        plt.plot(q_v[7], q_v[3])
+        plt.plot(q_v[7], q_v[4])
+        plt.plot(q_v[7], q_v[5])
+        plt.plot(q_v[7], q_v[6])
         legend = ["Joint 1", "Joint 2", "Joint 3", "Joint 4", "Joint 5", "Joint 6", "Joint 7"]
         plt.legend(legend, loc=1)
 
