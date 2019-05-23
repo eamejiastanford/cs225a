@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-// const bool flag_simulation = false;
-const bool flag_simulation = true;
+const bool flag_simulation = false;
+//const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -66,7 +66,6 @@ VectorXd saturate_torques(VectorXd torques) {
 }
 
 int main() {
-
 	// Choose where to get sensor values
 	if(flag_simulation)
 	{
@@ -106,9 +105,9 @@ int main() {
 	VectorXd command_torques = VectorXd::Zero(dof);
 	MatrixXd N_prec = MatrixXd::Identity(dof, dof);
 
-	// pose task
+	// pose task5
 	const string control_link = "link7";
-	const Vector3d control_point = Vector3d(0,0,0.07);
+	const Vector3d control_point = Vector3d(0,0,50.07);
 	auto posori_task = new Sai2Primitives::PosOriTask(robot, control_link, control_point);
 
 #ifdef USING_OTG
@@ -133,17 +132,12 @@ int main() {
 #endif
 
 	VectorXd joint_task_torques = VectorXd::Zero(dof);
-	joint_task->_kp = 50.0;
-	joint_task->_kv = 40.0;
+	joint_task->_kp = 50.0;//250
+	joint_task->_kv = 14.0;//15
 
 	VectorXd q_init_desired = initial_q;
-    // Desired initial configuration
-	q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.294309, 2.5031, 1.38538;
-	//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
-	//q_init_desired *= M_PI/180.0;
-	joint_task->_desired_position = q_init_desired;
 
-	// create a timer
+	// create a timer5
 	LoopTimer timer;
 	timer.initializeTimer();
 	timer.setLoopFrequency(1000); 
@@ -167,30 +161,33 @@ int main() {
     ofstream velocity;
     velocity.open("velocity.txt");
     
-    // For printing the command torques
+    // For printing the command torques5
     ofstream torques;
     torques.open("torques.txt");
     
     // For printing the joint velocities
     ofstream joint_velocity;
     joint_velocity.open("joint_velocity.txt");
+			cout << joint_task->_integrated_position_error << endl;
 
     // Coefficients for the polynomial trajectory
     VectorXd a(24);
-    //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.311859, 0.319496, -2.510322, -0.207906, -0.679664, 1.673548, 0.4328, -0.170849917695474, 0.01, 0, -0.608469135802469, 0, 0, 3.42435802469136, 0, 0, -2.54674897119342, 0;
-    //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.271937333333333, -0.146890666666667, -1.06236533333333, -0.120861037037037, -0.00878933333333333, 0.486977185185185, 0.5328, -0.0929938921282798, 0.148432944606414, 0, -0.144118440233236, 0.0322157434402332, 0, 0.780536443148688, -0.174198250728863, 0, -0.399628279883382, 0.0874635568513119;
-    a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.271937333333333, -0.146890666666667, -1.06236533333333, -0.120861037037037, -0.00878933333333333, 0.486977185185185, 0.5328, -3.9632, 1.75, 0, 8.55376, -3.2, 0, -5.65636, 2.0, 0, 1.17264, -0.4;
+    //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.3151859, 0.319496, -2.510322, -0.207906, -0.679664, 1.673548, 0.4328, -0.17085849917695474, 0.01, 0, -0.608469135802469, 0, 0, 3.42435802469136, 0, 0, -2.54674897119342, 0;
+    //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.271937333333333, -0.146890666666667, -1.06236533333333, -0.120861037037037, -0.00878933333333333, 0.486977185185185, 0.5328, -3.9632, 1.75, 0, 8.55376, -3.2, 0, -5.65636, 2.0, 0, 1.17264, -0.4;
+    a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.271937333333333, -0.146890666666667, -0.929032, -0.120861037037037, -0.00878933333333333, 0.427717925925926, 0.5328, -3.9632, 1.85, 0, 8.55376, -3.2, 0, -5.65636, 2.0, 0, 1.17264, -0.4;
 
-    // Intermediate point of the trajectory
-    Vector3d xDesInter = Vector3d(0.5328,0.09829, 0.10);
+
+    // Intermediate point of the trajectory5
+    Vector3d xDesInter = Vector3d(0.5328,0.09829, 0.20);
     // End point of the trajectory
-    Vector3d xDesF = Vector3d(0.5328,-0.1, 0.15);
+    Vector3d xDesF = Vector3d(0.5328,-0.1, 0.25);
 
 	VectorXd q_desired = initial_q;
 	q_desired << 0, 0, 0, -1.6, 0, 1.9, 0; 
 
 	while (runloop) {
 		// wait for next scheduled loop
+			cout << joint_task->_integrated_position_error << endl;
 		timer.waitForNextLoop();
 		double time = timer.elapsedTime() - start_time;
 
@@ -223,7 +220,13 @@ int main() {
              * start of its swing.
              */
             
-			// Update task model and set hierarchy
+    // Desired initial configuration
+	q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.294309, 2.5031, 1.38538;
+	//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
+	//q_init_desired *= M_PI/180.0;
+	joint_task->_desired_position = q_init_desired;
+
+			// Update task model and set hierarchy5
 			N_prec.setIdentity();
 			joint_task->updateTaskModel(N_prec);
             joint_task->_use_velocity_saturation_flag = true;
@@ -240,6 +243,9 @@ int main() {
             torques << command_torques.transpose() << ' ' << time << endl;
 
             // Print the torques
+		//	cout << (robot->_q - q_init_desired).transpose() << endl;
+		//	cout << (robot->_q - joint_task->_step_desired_position).transpose() << endl;
+			cout << (robot->_q - q_init_desired).norm() << endl;
 
             // Once the robot has reached close to its desired initial configuration,
             // change states to start the swing controller and start the task timer
@@ -299,7 +305,7 @@ int main() {
 
             // Write the following attributes to their respective files
             trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
-            des_trajectory << xDesF.transpose() << ' ' << time << endl;
+            des_trajectory << xDesF.transpose() << ' ' << time<< endl;
             joints << robot->_q.transpose() << ' ' << time << endl;
             joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
             velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
