@@ -68,13 +68,13 @@ if __name__ == '__main__':
 
     # Define the initial conditions
     startPos = np.array([0.328847, 0.458458, 0.846774])
-    endPos = np.array([0.5328,-0.1, 0.15])
+    endPos = np.array([0.5328,-0.1, 0.25])
 
     tmid = 1.5
     tfinal = 2.0
 
     # Define the intermediate point
-    interPos = np.array([0.5328,0.09829, 0.10])
+    interPos = np.array([0.5328,0.09829, 0.20])
 
     # Define the starting and ending velocities
     startVel = endVel = np.zeros(3)

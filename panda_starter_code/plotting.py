@@ -200,7 +200,7 @@ if __name__ == "__main__":
     if (args.torques):
         tau = parse_joint_trajectories("../bin/panda_starter_code/torques.txt")
 
-        print("Plotting joint trajectories...")
+        print("Plotting joint torques...")
 
         f = plt.figure(6)
         plt.title("Joint Torques")
