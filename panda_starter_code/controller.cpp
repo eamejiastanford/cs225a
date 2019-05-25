@@ -39,7 +39,7 @@ std::string JOINT_ANGLES_KEY;
 std::string JOINT_VELOCITIES_KEY;
 std::string JOINT_TORQUES_SENSED_KEY;
 // - write
-std::string JOINT_TORQ5UES_COMMANDED_KEY;
+std::string JOINT_TORQUES_COMMANDED_KEY;
 
 // - model
 std::string MASSMATRIX_KEY;
