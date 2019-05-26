@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-const bool flag_simulation = false;
-// const bool flag_simulation = true;
+// const bool flag_simulation = false;
+const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
