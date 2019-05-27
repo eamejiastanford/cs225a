@@ -117,10 +117,17 @@ int main() {
 #endif
 	
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
+    posori_task->_kp_pos = 2000.0;
+	posori_task->_kv_pos = 20.0;
+	posori_task->_kp_ori = 200.0;
+	posori_task->_kv_ori = 20.0;
+    /*
+     * The default values are above.
 	posori_task->_kp_pos = 120.0;
 	posori_task->_kv_pos = 40.0;
 	posori_task->_kp_ori = 100.0;
 	posori_task->_kv_ori = 70.0;
+    */
 
 	// joint task
 	auto joint_task = new Sai2Primitives::JointTask(robot);
@@ -184,6 +191,7 @@ int main() {
 
 	VectorXd q_desired = initial_q;
 	q_desired << 0, 0, 0, -1.6, 0, 1.9, 0; 
+    q_init_desired << 2.60051, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -251,9 +259,6 @@ int main() {
 
 
             // Print the torques
-		//	cout << (robot->_q - q_init_desired).transpose() << endl;
-		//	cout << (robot->_q - joint_task->_step_desired_position).transpose() << endl;
-            cout<< "READY_POSITION      ";// << command_torques.transpose() << "   ";
 			cout << (robot->_q - q_init_desired).norm()<< endl;
 
 
@@ -261,16 +266,14 @@ int main() {
             // change states to start the swing controller and start the task timer
 			if( (robot->_q - q_init_desired).norm() < 0.1 )
 			{
-				cout << "SWING STATE\n\n\n\n\n\n\n\n\n" <<endl;
+				cout << "SWING STATE\n" <<endl;
 				posori_task->reInitializeTask();
                 posori_task->_use_velocity_saturation_flag = false;
 				posori_task->_desired_position += Vector3d(0.0,0.0,0.0);
                 posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 				joint_task->reInitializeTask();
                 joint_task->_use_velocity_saturation_flag = false;
-				joint_task->_kp = 0;
-				joint_task->_kv = 20;
-				//state = SWING;
+				state = FOLLOW_THRU;
 				taskStart_time = timer.elapsedTime();
          
 			}
@@ -284,7 +287,10 @@ int main() {
 
 			// Initialize the task timer
             double tTask = timer.elapsedTime() - taskStart_time;
+            // 0.690139
+			q_desired << 1.34851, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 
+            /*
             // Define the desired trajectory of the EE based on the precalculated coefficients
  			Vector3d xDes = Vector3d(0.0,0.0,0.0);
  			xDes(0) = a[0] + a[3] * tTask + a[6] * pow(tTask,2) + a[9] * pow(tTask,3);
@@ -312,7 +318,18 @@ int main() {
 			// Compute torques
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
-			command_torques = saturate_torques(posori_task_torques + joint_task_torques);
+            */
+
+            VectorXd q_circle = q_desired;
+            q_circle(0) = (q_init_desired(0) - (q_init_desired(0)-q_desired(0))*tTask);
+			joint_task->_desired_position = q_circle;
+
+			// Update task model and set hierarchy
+			N_prec.setIdentity();
+			joint_task->updateTaskModel(N_prec);
+            joint_task->_use_velocity_saturation_flag = true;
+			joint_task->computeTorques(joint_task_torques);
+			command_torques = saturate_torques(joint_task_torques);
 
             // Write the following attributes to their respective files
             trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
@@ -324,8 +341,10 @@ int main() {
 
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
-			if ( (posori_task->_current_position - xDesInter).norm() < 0.1 ) {
+			if ( (robot->_q - q_desired).norm() < 0.1 ) {
+				cout << "FOLLOW THROUGH STATE\n" <<endl;
 				state = FOLLOW_THRU;
+				taskStart_time = timer.elapsedTime();
 			}
 		} 
         else if (state == FOLLOW_THRU) 
@@ -339,7 +358,11 @@ int main() {
 
 			// Initialize the task timer
             double tTask = timer.elapsedTime() - taskStart_time;
+            
+            // 0.690139
+			q_desired << 0.690139, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 
+            /*
             posori_task->_kp_pos = 100.0;
             posori_task->_kv_pos = 100.0;
             posori_task->_kp_ori = 100.0;
@@ -372,8 +395,19 @@ int main() {
 			// compute torques
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
-			command_torques = saturate_torques(posori_task_torques + joint_task_torques);
-            
+            */
+            VectorXd q_circle = q_desired;
+            //q_circle(0) = (1.34851 - (1.34851-q_desired(0))*tTask);
+            q_circle(0) = (q_init_desired(0) - (q_init_desired(0)-q_desired(0))*tTask/2);
+			joint_task->_desired_position = q_circle;
+
+			// Update task model and set hierarchy
+			N_prec.setIdentity();
+			joint_task->updateTaskModel(N_prec);
+            joint_task->_use_velocity_saturation_flag = true;
+			joint_task->computeTorques(joint_task_torques);
+			command_torques = saturate_torques(joint_task_torques);
+
             // Write the following attributes to their respective files
             trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
             des_trajectory << xDesF.transpose() << ' ' << time << endl;
@@ -384,8 +418,9 @@ int main() {
 
             // Once the arm is close enough to the final position, change the controller
             // to hold the arm at that position
-			if ( (posori_task->_current_position - xDesF).norm() < 0.1 ) {
+			if ( (robot->_q - q_desired).norm() < 0.1 ) {
                 state = HOLD;
+				cout << "HOLD STATE\n" <<endl;
            
             }
 		} 
@@ -395,6 +430,7 @@ int main() {
              * Hold the arm at the final position once the full swing motion has been completed.
              */
 
+            /*
             posori_task->_kp_pos = 120.0;
             posori_task->_kv_pos = 40.0;
             posori_task->_kp_ori = 100.0;
@@ -415,6 +451,17 @@ int main() {
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
 			command_torques = saturate_torques(posori_task_torques + joint_task_torques);
+            */
+
+			q_desired << 0.690139, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
+			joint_task->_desired_position = q_desired;
+
+			// Update task model and set hierarchy
+			N_prec.setIdentity();
+			joint_task->updateTaskModel(N_prec);
+            joint_task->_use_velocity_saturation_flag = true;
+			joint_task->computeTorques(joint_task_torques);
+			command_torques = saturate_torques(joint_task_torques);
 
             // Write the following attributes to their respective files
             trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
