@@ -222,7 +222,13 @@ int main() {
              */
             
 		    // Desired initial configuration
-			q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.294309, 2.5031, 1.38538;
+            // Below was for the full swing
+			//q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.294309, 2.5031, 1.38538;
+            // For the semi circle swing
+            // 2.60051
+            // 1.34851
+            // 0.690139
+			q_init_desired << 2.60051, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 			//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
 			//q_init_desired *= M_PI/180.0;
 			joint_task->_desired_position = q_init_desired;
@@ -264,7 +270,7 @@ int main() {
                 joint_task->_use_velocity_saturation_flag = false;
 				joint_task->_kp = 0;
 				joint_task->_kv = 20;
-				state = SWING;
+				//state = SWING;
 				taskStart_time = timer.elapsedTime();
          
 			}
