@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-const bool flag_simulation = false;
-//const bool flag_simulation = true;
+//const bool flag_simulation = false;
+const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -142,7 +142,6 @@ int main() {
 	joint_task->_kp = 250.0; //50;
 	joint_task->_kv = 15.0;
 
-	VectorXd q_init_desired = initial_q;
 
 	// create a timer
 	LoopTimer timer;
@@ -192,28 +191,21 @@ int main() {
 	VectorXd q_desired = initial_q;
 	VectorXd q_circle = initial_q;
 	q_desired << 0, 0, 0, -1.6, 0, 1.9, 0; 
-    q_init_desired << 2.60051, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 
-	VectorXd q1(dof);
-	VectorXd q2(dof);
-	VectorXd q3(dof);
-	VectorXd q4(dof);
-	VectorXd q5(dof);
-	VectorXd q6(dof);
-	VectorXd q7(dof);
-	VectorXd q8(dof);
+	VectorXd q_ready_pos = initial_q;
+	VectorXd q_inter_pos = initial_q;
+	VectorXd q_final_pos = initial_q;
+	VectorXd q_interpolated = initial_q;
 
-	q1 << 1.96717,0.62873,-1.11768,-1.96305,-0.00694139,1.81579,-0.54889;
-	q2 << 1.89353,0.628836,-1.12445,-2.1382,-0.178045,1.81398,-0.548895;
-	q3 << 1.81511,0.628146,-1.17783,-2.33654,-0.4661,1.81367,-0.548895;
-	q4 << 1.67071,0.416672,-1.22405,-2.52939,-0.891082,1.72784,-0.548891;
-	q5 << 1.30877,0.366178,-1.13545,-2.57107,-1.06904,1.79045,-1.0105;
-	q6 << 0.965591,0.368119,-1.0121,-2.57036,-1.26115,1.78971,-1.01047;
-	q7 << 0.69847,0.37314,-0.988169,-2.58332,-1.71343,1.78976,-1.01047;
-	q8 << 0.392499,0.511523,-0.988361,-2.43441,-1.94586,1.92835,-1.01047;
-	std::vector<VectorXd> q{q1,q2,q3,q4,q5,q6,q7,q8};
-
-	int i = 0;
+    // Used for joint 1 movement controller only
+    //q_ready_pos << 2.60051, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
+    //q_inter_pos << 1.34851, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
+    //q_final_pos << 0.690139, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
+    
+    // Used for joint 1 and 2 movement controller only
+    q_ready_pos << 2.24239,-0.700111,-0.677187,-2.15274,-0.613343,1.24621,0.0269322;
+    q_inter_pos << 1.39986,0.314558,-1.1326,-2.24341,-0.613585,1.24734,0.0269352;
+    q_final_pos << 0.196068,1.27001,-1.52246,-2.1445,-0.613519,1.37792,0.0269463;
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -260,10 +252,7 @@ int main() {
             // 0.690139
 			joint_task->_kp = 150.0; //50;
 			joint_task->_kv = 20.0;
-			q_init_desired << 2.60051, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
-			//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
-			//q_init_desired *= M_PI/180.0;
-			joint_task->_desired_position = q_init_desired;
+			joint_task->_desired_position = q_ready_pos;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
@@ -274,33 +263,34 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
 
 			command_torques = saturate_torques(joint_task_torques);
-   //          trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
-   //          des_trajectory << xDesF.transpose() << ' ' << time << endl;30
-   //          joints << robot->_q.transpose() << ' ' << time << endl;
-   //          joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
-   //          velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
-   //          torques << command_torques.transpose() << ' ' << time << endl;
 
             // Print the torques
-			cout << (robot->_q - q_init_desired).norm()<< endl;
+			cout << (robot->_q - q_ready_pos).norm()<< endl;
+            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
+            des_trajectory << xDesF.transpose() << ' ' << time << endl;
+            joints << robot->_q.transpose() << ' ' << time << endl;
+            joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
+            velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
+            torques << command_torques.transpose() << ' ' << time << endl;
 
 
             // Once the robot has reached close to its desired initial configuration,
             // change states to start the swing controller and start the task timer
-			if( (robot->_q - q_init_desired).norm() < 0.1 )
+			if( (robot->_q - q_ready_pos).norm() < 0.1 )
 			{
 				cout << "SWING STATE\n" <<endl;
+                /*
 				posori_task->reInitializeTask();
                 posori_task->_use_velocity_saturation_flag = false;
 				posori_task->_desired_position += Vector3d(0.0,0.0,0.0);
                 posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 				joint_task->reInitializeTask();
+                */
 				joint_task->_kp = 250.0; //50;
 				joint_task->_kv = 15.0;
                 joint_task->_use_velocity_saturation_flag = false;
-				state = FOLLOW_THRU;
+				state = SWING;
 				taskStart_time = timer.elapsedTime();
-         
 			}
 		}
 
@@ -312,8 +302,6 @@ int main() {
 
 			// Initialize the task timer
             tTask = timer.elapsedTime() - taskStart_time;
-            // 0.690139
-			q_desired << 1.34851, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 
             /*
             // Define the desired trajectory of the EE based on the precalculated coefficients
@@ -345,20 +333,19 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
             */
 
-            q_circle = q_desired;
-            q_circle(0) = (q_init_desired(0) - (q_init_desired(0)-q_desired(0))*tTask);
-			joint_task->_desired_position = q_circle;
+            q_interpolated = (q_ready_pos - (q_ready_pos-q_inter_pos)*tTask/0.9);
+			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
 			joint_task->updateTaskModel(N_prec);
-            joint_task->_use_velocity_saturation_flag = true;
+            joint_task->_use_velocity_saturation_flag = false;
 			joint_task->computeTorques(joint_task_torques);
 			command_torques = saturate_torques(joint_task_torques);
 
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the SWINGfollow through controller 
-			if ( (robot->_q - q_desired).norm() < 0.1 ) {
+			if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
 				state = FOLLOW_THRU;
 				taskStart_time = timer.elapsedTime();
@@ -374,8 +361,6 @@ int main() {
 			// Initialize the task timer
             tTask = timer.elapsedTime() - taskStart_time;
             
-            // 0.690139
-			q_desired << 0.690139, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 
             /*
             posori_task->_kp_pos = 100.0;
@@ -411,10 +396,8 @@ int main() {
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
             */
-            q_circle = q_desired;
-            //q_circle(0) = (1.34851 - (1.34851-q_desired(0))*tTask);
-            q_circle(0) = (q_init_desired(0) - (q_init_desired(0)-q_desired(0))*tTask/1.05);
-			joint_task->_desired_position = q_circle;
+            q_interpolated = (q_inter_pos - (q_inter_pos-q_final_pos)*tTask/0.9);
+			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
@@ -433,7 +416,7 @@ int main() {
 
             // Once the arm is close enough to the final position, change the controller
             // to hold the arm at that position
-			if ( (robot->_q - q_desired).norm() < 0.1 ) {
+			if ( (robot->_q - q_final_pos).norm() < 0.1 ) {
                 state = HOLD;
 				cout << "HOLD STATE\n" <<endl;
            
@@ -468,8 +451,7 @@ int main() {
 			command_torques = saturate_torques(posori_task_torques + joint_task_torques);
             */
 
-			q_desired << 0.690139, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
-			joint_task->_desired_position = q_desired;
+			joint_task->_desired_position = q_final_pos;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
