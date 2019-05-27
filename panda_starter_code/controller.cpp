@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-// const bool flag_simulation = false;
-const bool flag_simulation = true;
+const bool flag_simulation = false;
+//const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -258,6 +258,8 @@ int main() {
             // 2.60051
             // 1.34851
             // 0.690139
+			joint_task->_kp = 150.0; //50;
+			joint_task->_kv = 20.0;
 			q_init_desired << 2.60051, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 			//q_init_desired << -40.0, -15.0, -45.0, -105.0, 0.0, 90.0, 45.0;
 			//q_init_desired *= M_PI/180.0;
@@ -273,12 +275,11 @@ int main() {
 
 			command_torques = saturate_torques(joint_task_torques);
    //          trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
-   //          des_trajectory << xDesF.transpose() << ' ' << time << endl;
+   //          des_trajectory << xDesF.transpose() << ' ' << time << endl;30
    //          joints << robot->_q.transpose() << ' ' << time << endl;
    //          joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
    //          velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
    //          torques << command_torques.transpose() << ' ' << time << endl;
-
 
             // Print the torques
 			cout << (robot->_q - q_init_desired).norm()<< endl;
@@ -294,6 +295,8 @@ int main() {
 				posori_task->_desired_position += Vector3d(0.0,0.0,0.0);
                 posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 				joint_task->reInitializeTask();
+				joint_task->_kp = 250.0; //50;
+				joint_task->_kv = 15.0;
                 joint_task->_use_velocity_saturation_flag = false;
 				state = FOLLOW_THRU;
 				taskStart_time = timer.elapsedTime();
@@ -324,15 +327,15 @@ int main() {
  			Vector3d vDes = Vector3d(0.0,0.0,0.0);
  			vDes(0) = a[3] + 2 * a[6] * tTask + 3 * a[9] * pow(tTask,2);
  			vDes(1) = a[4] + 2 * a[7] * tTask + 3 * a[10] * pow(tTask,2);
- 			vDes(2) = a[5] + 2 * a[8] * tTask + 3 * a[11] * pow(tTask,2);
+ 			vDes(2) = a[5] + 2 * a[8] * tTask + 3 * /a[11] * pow(tTask,2);
 
 			posori_task->_desired_position = xDes;
 			posori_task->_desired_velocity = vDes;
-
+ 
             joint_task->_desired_position = q_desired;
 
 			// Update task model and set hierarchy
-			N_prec.setIdentity();
+			N_prec.setIdentity();30
 			posori_task->updateTaskModel(N_prec);
 			N_prec = posori_task->_N;
 			joint_task->updateTaskModel(N_prec);
@@ -410,13 +413,13 @@ int main() {
             */
             q_circle = q_desired;
             //q_circle(0) = (1.34851 - (1.34851-q_desired(0))*tTask);
-            q_circle(0) = (q_init_desired(0) - (q_init_desired(0)-q_desired(0))*tTask/2);
+            q_circle(0) = (q_init_desired(0) - (q_init_desired(0)-q_desired(0))*tTask/1.05);
 			joint_task->_desired_position = q_circle;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
 			joint_task->updateTaskModel(N_prec);
-            joint_task->_use_velocity_saturation_flag = true;
+            joint_task->_use_velocity_saturation_flag = false;
 			joint_task->computeTorques(joint_task_torques);
 			command_torques = saturate_torques(joint_task_torques);
 
@@ -501,7 +504,7 @@ int main() {
 	double end_time = timer.elapsedTime();
    // std::cout << "\n";
     //std::cout << "Controller Loop run time  : " << end_time << " seconds\n";
-   // std::cout << "Controller Loop updates   : " << timer.elapsedCycles() << "\n";
+   // std::cout << "Controller Loop updates   : " << timer.elapsedCycles() <<30 "\n";
    // std::cout << "Controller Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
 
 
