@@ -151,6 +151,7 @@ int main() {
 	double start_time = timer.elapsedTime(); //secs
 	bool fTimerDidSleep = true;
 	double taskStart_time = 0.0;
+	double tTask = 0.0;
 
     // For printing trajectory to file 
     ofstream trajectory;
@@ -189,6 +190,7 @@ int main() {
     Vector3d xDesF = Vector3d(0.5328,-0.1, 0.25);
 
 	VectorXd q_desired = initial_q;
+	VectorXd q_circle = initial_q;
 	q_desired << 0, 0, 0, -1.6, 0, 1.9, 0; 
     q_init_desired << 2.60051, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 
@@ -306,7 +308,7 @@ int main() {
              */
 
 			// Initialize the task timer
-            double tTask = timer.elapsedTime() - taskStart_time;
+            tTask = timer.elapsedTime() - taskStart_time;
             // 0.690139
 			q_desired << 1.34851, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
 
@@ -340,7 +342,7 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
             */
 
-            VectorXd q_circle = q_desired;
+            q_circle = q_desired;
             q_circle(0) = (q_init_desired(0) - (q_init_desired(0)-q_desired(0))*tTask);
 			joint_task->_desired_position = q_circle;
 
@@ -352,19 +354,22 @@ int main() {
 			command_torques = saturate_torques(joint_task_torques);
 
             // Once the robot has reached close enough to the desired intermediate point, 
-            // change to the follow through controller 
+            // change to the SWINGfollow through controller 
 			if ( (robot->_q - q_desired).norm() < 0.1 ) {
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
 				state = FOLLOW_THRU;
 				taskStart_time = timer.elapsedTime();
 			}
 
+		}
+	else if(state == FOLLOW_THRU)
+		{
             /*
              * Controller for the main swing of the robot to the ball.
              */
 
 			// Initialize the task timer
-            double tTask = timer.elapsedTime() - taskStart_time;
+            tTask = timer.elapsedTime() - taskStart_time;
             
             // 0.690139
 			q_desired << 0.690139, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
@@ -403,7 +408,7 @@ int main() {
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
             */
-            VectorXd q_circle = q_desired;
+            q_circle = q_desired;
             //q_circle(0) = (1.34851 - (1.34851-q_desired(0))*tTask);
             q_circle(0) = (q_init_desired(0) - (q_init_desired(0)-q_desired(0))*tTask/2);
 			joint_task->_desired_position = q_circle;
@@ -429,8 +434,8 @@ int main() {
                 state = HOLD;
 				cout << "HOLD STATE\n" <<endl;
            
-  //           }
 		} 
+		}
         else if (state == HOLD) 
         {
             /*
