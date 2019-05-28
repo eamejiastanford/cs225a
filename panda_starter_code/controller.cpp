@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-//const bool flag_simulation = false;
-const bool flag_simulation = true;
+const bool flag_simulation = false;
+//const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -203,9 +203,14 @@ int main() {
     //q_final_pos << 0.690139, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
     
     // Used for joint 1 and 2 movement controller only
-    q_ready_pos << 2.24239,-0.700111,-0.677187,-2.15274,-0.613343,1.24621,0.0269322;
-    q_inter_pos << 1.39986,0.314558,-1.1326,-2.24341,-0.613585,1.24734,0.0269352;
-    q_final_pos << 0.196068,1.27001,-1.52246,-2.1445,-0.613519,1.37792,0.0269463;
+    //q_ready_pos << 2.24239,-0.700111,-0.677187,-2.15274,-0.613343,1.24621,0.0269322;
+    //q_inter_pos << 1.39986,0.314558,-1.1326,-2.24341,-0.613585,1.24734,0.0269352;
+    //q_final_pos << 0.196068,1.27001,-1.52246,-2.1445,-0.613519,1.37792,0.0269463;
+
+    // Karate kick swing
+    q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.55528,-0.986073;
+    q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
+    q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -286,7 +291,7 @@ int main() {
                 posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 				joint_task->reInitializeTask();
                 */
-				joint_task->_kp = 250.0; //50;
+				joint_task->_kp = 175.0; //50;
 				joint_task->_kv = 15.0;
                 joint_task->_use_velocity_saturation_flag = false;
 				state = SWING;
@@ -344,7 +349,7 @@ int main() {
 			command_torques = saturate_torques(joint_task_torques);
 
             // Once the robot has reached close enough to the desired intermediate point, 
-            // change to the SWINGfollow through controller 
+            // change to the follow through controller 
 			if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
 				state = FOLLOW_THRU;
