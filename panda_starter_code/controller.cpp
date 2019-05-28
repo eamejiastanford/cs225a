@@ -215,7 +215,7 @@ int main() {
     t_final << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
     VectorXd t_inter(7);
     for (int i=0;i<7;i++) {
-	    t_inter(7) = (q_inter_pos(i) - q_ready_pos(i)) * (t_final(i)) / (q_final_pos(i) - q_ready_pos(i));
+	    t_inter(i) = (q_inter_pos(i) - q_ready_pos(i)) * (t_final(i)) / (q_final_pos(i) - q_ready_pos(i));
     }
 
 	while (runloop) {
@@ -342,9 +342,10 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
             */
 
-	    for (int i=0;i<7;i++) {
-		    q_interpolated(i) = (q_ready_pos(i) - (q_ready_pos(i)-q_inter_pos(i))*tTask/t_inter(i));
-	    }
+	    //for (int i=0;i<7;i++) {
+		    //q_interpolated(i) = (q_ready_pos(i) - (q_ready_pos(i)-q_inter_pos(i))*tTask/t_inter(i));
+	    //}
+		    q_interpolated = (q_ready_pos + (q_final_pos-q_ready_pos)*tTask/1.5);
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
@@ -356,9 +357,12 @@ int main() {
 
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
-			if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
+			//if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
+			if ( (robot->_q - q_final_pos).norm() < 0.1 ) {
+				joint_task->_kp = 75.0; //50;
+				joint_task->_kv = 5.0;
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
-				state = FOLLOW_THRU;
+				state = HOLD;
 				taskStart_time = timer.elapsedTime();
 			}
 
@@ -464,7 +468,9 @@ int main() {
 			command_torques = saturate_torques(posori_task_torques + joint_task_torques);
             */
 
-			joint_task->_desired_position = q_final_pos;
+            q_final_pos.setZero();
+			joint_task->_desired_velocity = q_final_pos;
+			//joint_task->_desired_position = q_final_pos;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
