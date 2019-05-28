@@ -177,7 +177,7 @@ int main() {
     joint_velocity.open("joint_velocity.txt");
 			// cout << joint_task->_integrated_position_error << endl;
 
-    // Coefficients for the polynomial trajectory
+    // Coefficients for the polycnomial trajectory
     VectorXd a(24);
     //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.3151859, 0.319496, -2.510322, -0.207906, -0.679664, 1.673548, 0.4328, -0.17085849917695474, 0.01, 0, -0.608469135802469, 0, 0, 3.42435802469136, 0, 0, -2.54674897119342, 0;
     //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.271937333333333, -0.146890666666667, -1.06236533333333, -0.120861037037037, -0.00878933333333333, 0.486977185185185, 0.5328, -3.9632, 1.75, 0, 8.55376, -3.2, 0, -5.65636, 2.0, 0, 1.17264, -0.4;
@@ -338,7 +338,7 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
             */
 
-            q_interpolated = (q_ready_pos - (q_ready_pos-q_inter_pos)*tTask/0.9);
+            q_interpolated = (q_ready_pos - (q_ready_pos-q_inter_pos)*tTask/0.6);
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
@@ -401,7 +401,7 @@ int main() {
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
             */
-            q_interpolated = (q_inter_pos - (q_inter_pos-q_final_pos)*tTask/0.9);
+            q_interpolated = (q_inter_pos - (q_inter_pos-q_final_pos)*tTask/0.6);
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
