@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-const bool flag_simulation = false;
-//const bool flag_simulation = true;
+//const bool flag_simulation = false;
+const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -76,7 +76,6 @@ int main() {
 	else
 	{
 		JOINT_TORQUES_COMMANDED_KEY = "sai2::FrankaPanda::actuators::fgc";
-
 		JOINT_ANGLES_KEY  = "sai2::FrankaPanda::sensors::q";
 		JOINT_VELOCITIES_KEY = "sai2::FrankaPanda::sensors::dq";
 		JOINT_TORQUES_SENSED_KEY = "sai2::FrankaPanda::sensors::torques";
@@ -212,6 +211,13 @@ int main() {
     q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
     q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
 
+    VectorXd t_final(7);
+    t_final << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+    VectorXd t_inter(7);
+    for (int i=0;i<7;i++) {
+	    t_inter(7) = (q_inter_pos(i) - q_ready_pos(i)) * (t_final(i)) / (q_final_pos(i) - q_ready_pos(i));
+    }
+
 	while (runloop) {
 		// wait for next scheduled loop
 			// cout << joint_task->_integrated_position_error << endl;
@@ -268,7 +274,6 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
 
 			command_torques = saturate_torques(joint_task_torques);
-
             // Print the torques
 			cout << (robot->_q - q_ready_pos).norm()<< endl;
             trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
@@ -304,7 +309,6 @@ int main() {
             /*
              * Controller for the main swing of the robot to the ball.
              */
-
 			// Initialize the task timer
             tTask = timer.elapsedTime() - taskStart_time;
 
@@ -338,7 +342,9 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
             */
 
-            q_interpolated = (q_ready_pos - (q_ready_pos-q_inter_pos)*tTask/0.6);
+	    for (int i=0;i<7;i++) {
+		    q_interpolated(i) = (q_ready_pos(i) - (q_ready_pos(i)-q_inter_pos(i))*tTask/t_inter(i));
+	    }
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
@@ -401,7 +407,9 @@ int main() {
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
             */
-            q_interpolated = (q_inter_pos - (q_inter_pos-q_final_pos)*tTask/0.6);
+	    for (int i=0;i<7;i++) {
+		    q_interpolated(i) = (q_inter_pos(i) - (q_inter_pos(i)-q_final_pos(i))*tTask/(t_final(i) - t_inter(i)));
+	    }
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
