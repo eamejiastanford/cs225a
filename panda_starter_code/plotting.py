@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
@@ -184,6 +185,10 @@ if __name__ == "__main__":
     if (args.velocity):
         vx, vy, vz, t = parse_ee_position_velocity("../bin/panda_starter_code/velocity.txt")
 
+        v = []
+        for i in range(len(vx)):
+            v.append(math.sqrt(vx[i]**2 + vy[i]**2 + vz[i]**2))
+
         print("Plotting EE velocity...")
 
         f = plt.figure(5)
@@ -194,7 +199,8 @@ if __name__ == "__main__":
         plt.plot(t, vx)
         plt.plot(t, vy)
         plt.plot(t, vz)
-        legend = ["Vx", "Vy", "Vz"]
+        plt.plot(t, v)
+        legend = ["Vx", "Vy", "Vz", "Total V"]
         plt.legend(legend, loc=1)
 
     if (args.torques):
