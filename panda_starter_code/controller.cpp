@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-//const bool flag_simulation = false;
-const bool flag_simulation = true;
+const bool flag_simulation = false;
+// const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -116,7 +116,7 @@ int main() {
 #endif
 	
 	VectorXd posori_task_torques = VectorXd::Zero(dof);
-    posori_task->_kp_pos = 2000.0;
+    posori_task->_kp_pos = 200.0;
 	posori_task->_kv_pos = 20.0;
 	posori_task->_kp_ori = 200.0;
 	posori_task->_kv_ori = 20.0;
@@ -174,7 +174,7 @@ int main() {
     // For printing the joint velocities
     ofstream joint_velocity;
     joint_velocity.open("joint_velocity.txt");
-			// cout << joint_task->_integrated_position_error << endl;
+			// cout << joint_task->_integratrueted_position_error << endl;
 
     // Coefficients for the polycnomial trajectory
     VectorXd a(24);
@@ -194,6 +194,7 @@ int main() {
 	VectorXd q_ready_pos = initial_q;
 	VectorXd q_inter_pos = initial_q;
 	VectorXd q_final_pos = initial_q;
+	VectorXd q_hold_pos = initial_q;
 	VectorXd q_interpolated = initial_q;
 
     // Used for joint 1 movement controller only
@@ -207,12 +208,19 @@ int main() {
     //q_final_pos << 0.196068,1.27001,-1.52246,-2.1445,-0.613519,1.37792,0.0269463;
 
     // Karate kick swing
-    q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.55528,-0.986073;
+    // q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.55528,-0.986073;
+    // q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
+    // q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
+
+    q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.85528,-0.986073;
     q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
-    q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
+    q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.21047,-0.986073;
+
+    // TODO: tune this to get less overshoot in hold state
+    q_hold_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
 
     VectorXd t_final(7);
-    t_final << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+    t_final << 1.95, 1.95, 1.95, 1.95, 1.95, 1.95, 1.0;
     VectorXd t_inter(7);
     for (int i=0;i<7;i++) {
 	    t_inter(i) = (q_inter_pos(i) - q_ready_pos(i)) * (t_final(i)) / (q_final_pos(i) - q_ready_pos(i));
@@ -342,10 +350,41 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
             */
 
-	    //for (int i=0;i<7;i++) {
-		    //q_interpolated(i) = (q_ready_pos(i) - (q_ready_pos(i)-q_inter_pos(i))*tTask/t_inter(i));
-	    //}
-		    q_interpolated = (q_ready_pos + (q_final_pos-q_ready_pos)*tTask/1.5);
+    //         for (int i=0;i<7;i++) {
+				// q_interpolated(i) = (q_ready_pos(i) - (q_final_pos(i)-q_ready_pos(i))*tTask/t_final(i));
+	   //  	}
+
+            double tMotionTotal = 2.1;
+		    q_interpolated = (q_ready_pos + (q_final_pos-q_ready_pos)*tTask/tMotionTotal);
+
+		    double tMotionTotal_j4 = 1.8;
+		    double tMotionStart_j4 = 0.5;
+		    double tMotionTotal_j6 = 1.2;
+		    double tMotionStart_j6 = 1.0;
+
+	    	// flick J4
+		    // if ( tTask < tMotionStart_j4 ) {
+		    // 	q_interpolated[3] = q_ready_pos[3];
+		    // }
+		    // else if ( (tTask >= (tMotionStart_j4)) and (tTask < (tMotionStart_j4 + tMotionTotal_j4)) ) {
+			   //  q_interpolated[3] = (q_ready_pos[3] + (q_final_pos[3]-q_ready_pos[3])*tTask/tMotionTotal_j4);
+		    // }
+		    // else {
+		    // 	q_interpolated[3] = q_final_pos[3];
+		    // }
+
+    		// flick J6
+		    if ( tTask < tMotionStart_j6 ) {
+		    	q_interpolated[5] = q_ready_pos[5];
+		    }
+		    else if ( (tTask >= (tMotionStart_j6)) and (tTask < (tMotionStart_j6 + tMotionTotal_j6)) ) {
+			    q_interpolated[5] = (q_ready_pos[5] + (q_final_pos[5]-q_ready_pos[5])*tTask/tMotionTotal_j6);
+		    }
+		    else {
+		    	q_interpolated[5] = q_final_pos[5];
+		    }
+
+		    // q_interpolated[5] = (q_ready_pos[5] + (q_final_pos[5]-q_ready_pos[5])*tTask/1.5);
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
@@ -358,7 +397,7 @@ int main() {
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
 			//if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
-			if ( (robot->_q - q_final_pos).norm() < 0.1 ) {
+			if ( (robot->_q - q_final_pos).norm() < 0.3 ) {
 				joint_task->_kp = 75.0; //50;
 				joint_task->_kv = 5.0;
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
@@ -468,9 +507,9 @@ int main() {
 			command_torques = saturate_torques(posori_task_torques + joint_task_torques);
             */
 
-            q_final_pos.setZero();
-			joint_task->_desired_velocity = q_final_pos;
-			//joint_task->_desired_position = q_final_pos;
+            // q_final_pos.setZero();
+			joint_task->_desired_velocity.setZero();
+			// joint_task->_desired_position = q_hold_pos;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
