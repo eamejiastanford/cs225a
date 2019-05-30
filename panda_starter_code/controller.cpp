@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-const bool flag_simulation = false;
-// const bool flag_simulation = true;
+//const bool flag_simulation = false;
+const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -221,12 +221,13 @@ int main() {
     // TODO: tune this to get less overshoot in hold state
     q_hold_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
 
-    VectorXd t_final(7);
-    t_final << 1.95, 1.95, 1.95, 1.95, 1.95, 1.95, 1.0;
+
+    double tStartToInter = 1.7;
+    double tInterToFinal = 0.3;
     VectorXd t_inter(7);
-    for (int i=0;i<7;i++) {
-	    t_inter(i) = (q_inter_pos(i) - q_ready_pos(i)) * (t_final(i)) / (q_final_pos(i) - q_ready_pos(i));
-    }
+    t_inter << tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter;
+    VectorXd t_final(7);
+    t_final << tInterToFinal, tInterToFinal, tInterToFinal, tInterToFinal, tInterToFinal, tInterToFinal, tInterToFinal;
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -308,7 +309,7 @@ int main() {
                 posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
 				joint_task->reInitializeTask();
                 */
-				joint_task->_kp = 175.0; //50;
+				joint_task->_kp = 250.0;
 				joint_task->_kv = 15.0;
                 joint_task->_use_velocity_saturation_flag = false;
 				state = SWING;
@@ -354,12 +355,7 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
             */
 
-    //         for (int i=0;i<7;i++) {
-				// q_interpolated(i) = (q_ready_pos(i) - (q_final_pos(i)-q_ready_pos(i))*tTask/t_final(i));
-	   //  	}
-
-            double tMotionTotal = 2.1;
-		    q_interpolated = (q_ready_pos + (q_final_pos-q_ready_pos)*tTask/tMotionTotal);
+		    q_interpolated = (q_ready_pos + (q_inter_pos-q_ready_pos)*tTask/tStartToInter);
 
 		    double tMotionTotal_j4 = 1.8;
 		    double tMotionStart_j4 = 0.5;
@@ -378,6 +374,7 @@ int main() {
 		    // }
 
     		// flick J6
+            /*
 		    if ( tTask < tMotionStart_j6 ) {
 		    	q_interpolated[5] = q_ready_pos[5];
 		    }
@@ -387,6 +384,7 @@ int main() {
 		    else {
 		    	q_interpolated[5] = q_final_pos[5];
 		    }
+            */
 
 		    // q_interpolated[5] = (q_ready_pos[5] + (q_final_pos[5]-q_ready_pos[5])*tTask/1.5);
 			joint_task->_desired_position = q_interpolated;
@@ -406,14 +404,13 @@ int main() {
             velocity << current_velocity.transpose() << ' ' << time << endl;
             torques << command_torques.transpose() << ' ' << time << endl;
 
+			cout << (robot->_q - q_inter_pos).norm() << endl;
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
-			//if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
-			if ( (robot->_q - q_final_pos).norm() < 0.3 ) {
-				joint_task->_kp = 75.0; //50;
-				joint_task->_kv = 5.0;
+			if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
+			//if ( (robot->_q - q_final_pos).norm() < 0.3 ) {
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
-				state = HOLD;
+				state = FOLLOW_THRU;
 				taskStart_time = timer.elapsedTime();
 			}
 
@@ -461,10 +458,11 @@ int main() {
 			// compute torques
 			posori_task->computeTorques(posori_task_torques);
 			joint_task->computeTorques(joint_task_torques);
-            */
 	    for (int i=0;i<7;i++) {
 		    q_interpolated(i) = (q_inter_pos(i) - (q_inter_pos(i)-q_final_pos(i))*tTask/(t_final(i) - t_inter(i)));
 	    }
+            */
+		    q_interpolated = (q_inter_pos + (q_final_pos-q_inter_pos)*tTask/tInterToFinal);
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
@@ -485,6 +483,8 @@ int main() {
             // Once the arm is close enough to the final position, change the controller
             // to hold the arm at that position
 			if ( (robot->_q - q_final_pos).norm() < 0.1 ) {
+				joint_task->_kp = 150.0;
+				joint_task->_kv = 15.0;
                 state = HOLD;
 				cout << "HOLD STATE\n" <<endl;
            
