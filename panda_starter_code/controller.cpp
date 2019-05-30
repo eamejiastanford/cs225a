@@ -107,6 +107,8 @@ int main() {
 	// pose task
 	const string control_link = "link7";
 	const Vector3d control_point = Vector3d(0,0,0.07);
+    Vector3d current_velocity;
+    Vector3d current_pos;
 	auto posori_task = new Sai2Primitives::PosOriTask(robot, control_link, control_point);
 
 #ifdef USING_OTG
@@ -235,6 +237,8 @@ int main() {
 		// read robot state from redis
 		robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
 		robot->_dq = redis_client.getEigenMatrixJSON(JOINT_VELOCITIES_KEY);
+        robot->linearVelocity(current_velocity, control_link, control_point);
+        robot->position(current_pos, control_link, control_point);
 
 		// update model
 		if(flag_simulation)
@@ -284,11 +288,11 @@ int main() {
 			command_torques = saturate_torques(joint_task_torques);
             // Print the torques
 			cout << (robot->_q - q_ready_pos).norm()<< endl;
-            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
+            trajectory << current_pos.transpose() << ' ' << time << endl;
             des_trajectory << xDesF.transpose() << ' ' << time << endl;
             joints << robot->_q.transpose() << ' ' << time << endl;
             joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
-            velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
+            velocity << current_velocity.transpose() << ' ' << time << endl;
             torques << command_torques.transpose() << ' ' << time << endl;
 
 
@@ -394,6 +398,14 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
 			command_torques = saturate_torques(joint_task_torques);
 
+            // Print the torques
+            trajectory << current_pos.transpose() << ' ' << time << endl;
+            des_trajectory << xDesF.transpose() << ' ' << time << endl;
+            joints << robot->_q.transpose() << ' ' << time << endl;
+            joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
+            velocity << current_velocity.transpose() << ' ' << time << endl;
+            torques << command_torques.transpose() << ' ' << time << endl;
+
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
 			//if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
@@ -462,12 +474,12 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
 			command_torques = saturate_torques(joint_task_torques);
 
-            // Write the following attributes to their respective files
-            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
+            // Print the torques
+            trajectory << current_pos.transpose() << ' ' << time << endl;
             des_trajectory << xDesF.transpose() << ' ' << time << endl;
             joints << robot->_q.transpose() << ' ' << time << endl;
             joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
-            velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
+            velocity << current_velocity.transpose() << ' ' << time << endl;
             torques << command_torques.transpose() << ' ' << time << endl;
 
             // Once the arm is close enough to the final position, change the controller
@@ -518,12 +530,12 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
 			command_torques = saturate_torques(joint_task_torques);
 
-            // Write the following attributes to their respective files
-            trajectory << posori_task->_current_position.transpose() << ' ' << time << endl;
+            // Print the torques
+            trajectory << current_pos.transpose() << ' ' << time << endl;
             des_trajectory << xDesF.transpose() << ' ' << time << endl;
             joints << robot->_q.transpose() << ' ' << time << endl;
             joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
-            velocity << posori_task->_current_velocity.transpose() << ' ' << time << endl;
+            velocity << current_velocity.transpose() << ' ' << time << endl;
             torques << command_torques.transpose() << ' ' << time << endl;
 		}
 
