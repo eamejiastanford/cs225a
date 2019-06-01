@@ -48,7 +48,7 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-//const bool flag_simulation = false;
+// const bool flag_simulation = false;
 const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
@@ -214,13 +214,22 @@ int main() {
     // q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
     // q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
 
+    // Leg kicking motion (horizontal sweep)
+    // q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.85528,-0.986073;
+    // q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
+    // q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.21047,-0.986073;
+
+	// Leg kicking with an extra flick from joint 6
     q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.85528,-0.986073;
     q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
-    q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.21047,-0.986073;
+    q_final_pos << 0.833803,1.2622,-1.6661,-0.1011798,-0.141813,2.51047,0.186073; //joint 4 was -0.291798
 
+
+	// Leg kicking with an extra flick from joint 7
+    // q_ready_pos << -1.36611,1.53385,-1.80898,-2.74587,1.37521,1.63605,0.11715;
+    // q_final_pos << 0.166549,1.53385,-1.80898,-0.291798,1.37521,1.63605,-0.785267;
     // TODO: tune this to get less overshoot in hold state
-    q_hold_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
-
+ 
 
     double tStartToInter = 1.7;
     double tInterToFinal = 0.3;
@@ -355,26 +364,28 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
             */
 
-		    q_interpolated = (q_ready_pos + (q_inter_pos-q_ready_pos)*tTask/tStartToInter);
+		    //q_interpolated = (q_ready_pos + (q_inter_pos-q_ready_pos)*tTask/tStartToInter);
+		    q_interpolated = (q_ready_pos + (q_final_pos-q_ready_pos)*tTask/2.3);
+
 
 		    double tMotionTotal_j4 = 1.8;
 		    double tMotionStart_j4 = 0.5;
-		    double tMotionTotal_j6 = 1.2;
-		    double tMotionStart_j6 = 1.0;
+		    double tMotionTotal_j6 = 3;
+		    double tMotionStart_j6 = 1.6;
 
-	    	// flick J4
-		    // if ( tTask < tMotionStart_j4 ) {
-		    // 	q_interpolated[3] = q_ready_pos[3];
+	    	// flick J7
+		    // if ( tTask < tMotionStart_j6 ) {
+		    // 	q_interpolated[6] = q_ready_pos[6];
 		    // }
-		    // else if ( (tTask >= (tMotionStart_j4)) and (tTask < (tMotionStart_j4 + tMotionTotal_j4)) ) {
-			   //  q_interpolated[3] = (q_ready_pos[3] + (q_final_pos[3]-q_ready_pos[3])*tTask/tMotionTotal_j4);
+		    // else if ( (tTask >= (tMotionStart_j6)) and (tTask < (tMotionStart_j6 + tMotionTotal_j6)) ) {
+			   //  q_interpolated[6] = (q_ready_pos[6] + (q_final_pos[6]-q_ready_pos[6])*tTask/tMotionTotal_j6);
 		    // }
 		    // else {
-		    // 	q_interpolated[3] = q_final_pos[3];
+		    // 	q_interpolated[6] = q_final_pos[6];
 		    // }
 
-    		// flick J6
-            /*
+    		// flick J6- UNCOMMENT THE IFS
+            
 		    if ( tTask < tMotionStart_j6 ) {
 		    	q_interpolated[5] = q_ready_pos[5];
 		    }
@@ -384,9 +395,8 @@ int main() {
 		    else {
 		    	q_interpolated[5] = q_final_pos[5];
 		    }
-            */
+            
 
-		    // q_interpolated[5] = (q_ready_pos[5] + (q_final_pos[5]-q_ready_pos[5])*tTask/1.5);
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
@@ -404,13 +414,14 @@ int main() {
             velocity << current_velocity.transpose() << ' ' << time << endl;
             torques << command_torques.transpose() << ' ' << time << endl;
 
-			cout << (robot->_q - q_inter_pos).norm() << endl;
+			//cout << (robot->_q - q_inter_pos).norm() << endl;
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
-			if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
-			//if ( (robot->_q - q_final_pos).norm() < 0.3 ) {
+			//if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
+			if ( (robot->_q - q_final_pos).norm() < 0.3) {
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
-				state = FOLLOW_THRU;
+				// state = FOLLOW_THRU;
+				state = HOLD; //used for the flix
 				taskStart_time = timer.elapsedTime();
 			}
 
@@ -521,7 +532,7 @@ int main() {
 
             // q_final_pos.setZero();
 			joint_task->_desired_velocity.setZero();
-			// joint_task->_desired_position = q_hold_pos;
+			// joint_task->_desired_position = q_final_pos;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
