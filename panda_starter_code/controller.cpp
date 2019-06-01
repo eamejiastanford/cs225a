@@ -48,8 +48,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-// const bool flag_simulation = false;
-const bool flag_simulation = true;
+const bool flag_simulation = false;
+//const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -221,8 +221,10 @@ int main() {
 
 	// Leg kicking with an extra flick from joint 6
     q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.85528,-0.986073;
-    q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
-    q_final_pos << 0.833803,1.2622,-1.6661,-0.1011798,-0.141813,2.51047,0.186073; //joint 4 was -0.291798
+    q_inter_pos << 0.648375,1.2622,-1.6661,-1.292374,-0.141813,2.01618,-0.986073;
+    //q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
+    q_final_pos << 1.91053,1.2622,-1.6661,-0.479243,-0.102015,2.08507,-0.821269;
+    //q_final_pos << 0.833803,1.2622,-1.6661,-0.1011798,-0.141813,2.51047,0.186073; //joint 4 was -0.291798
 
 
 	// Leg kicking with an extra flick from joint 7
@@ -232,9 +234,9 @@ int main() {
  
 
     double tStartToInter = 1.7;
-    double tInterToFinal = 0.3;
+    double tInterToFinal = 1.7;
     double tMotionTotal_j4 = 2.5;
-    double tMotionStart_j4 = 1;
+    double tMotionStart_j4 = 0.0;
     double tMotionTotal_j6 = 2.5;
     double tMotionStart_j6 = 0.0;
 
@@ -340,8 +342,6 @@ int main() {
 			// Initialize the task timer
             tTask = timer.elapsedTime() - taskStart_time;
 
-		    q_interpolated = (q_ready_pos + (q_inter_pos-q_ready_pos)*tTask/tStartToInter);
-
             for (int i=0;i<dof;i++) {
                 if (tMotionStart[i] != 0.0) {
                     if ( tTask < tMotionStart[i] ) {
@@ -378,8 +378,11 @@ int main() {
 			//cout << (robot->_q - q_inter_pos).norm() << endl;
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
-			if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
+			//if ( (robot->_q - q_inter_pos).norm() < 0.05 ) {
 			//if ( (robot->_q - q_final_pos).norm() < 0.3) {
+				cout << tTask << endl;
+			if ( tTask == tStartToInter){
+			//if ( (tTask - tStartToInter) < 0.05){
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
 				state = FOLLOW_THRU;
 				taskStart_time = timer.elapsedTime();
