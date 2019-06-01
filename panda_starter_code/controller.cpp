@@ -233,10 +233,15 @@ int main() {
 
     double tStartToInter = 1.7;
     double tInterToFinal = 0.3;
-    VectorXd t_inter(7);
-    t_inter << tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter;
-    VectorXd t_final(7);
-    t_final << tInterToFinal, tInterToFinal, tInterToFinal, tInterToFinal, tInterToFinal, tInterToFinal, tInterToFinal;
+    double tMotionTotal_j4 = 2.5;
+    double tMotionStart_j4 = 1;
+    double tMotionTotal_j6 = 2.5;
+    double tMotionStart_j6 = 0.0;
+
+    VectorXd tMotionStart(dof);
+    tMotionStart << 0.0, 0.0, 0.0, tMotionStart_j4, 0.0, tMotionStart_j6, 0.0;
+    VectorXd tMotionTotal(dof);
+    tMotionTotal << tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter;
 
 	while (runloop) {
 		// wait for next scheduled loop
@@ -331,71 +336,27 @@ int main() {
             /*
              * Controller for the main swing of the robot to the ball.
              */
+            
 			// Initialize the task timer
             tTask = timer.elapsedTime() - taskStart_time;
 
-            /*
-            // Define the desired trajectory of the EE based on the precalculated coefficients
- 			Vector3d xDes = Vector3d(0.0,0.0,0.0);
- 			xDes(0) = a[0] + a[3] * tTask + a[6] * pow(tTask,2) + a[9] * pow(tTask,3);
- 			xDes(1) = a[1] + a[4] * tTask + a[7] * pow(tTask,2) + a[10] * pow(tTask,3);
- 			xDes(2) = a[2] + a[5] * tTask + a[8] * pow(tTask,2) + a[11] * pow(tTask,3);
+		    q_interpolated = (q_ready_pos + (q_inter_pos-q_ready_pos)*tTask/tStartToInter);
 
-
-            // Define the desired velocity of the swing based on the derivative of the desired trajectory
- 			Vector3d vDes = Vector3d(0.0,0.0,0.0);
- 			vDes(0) = a[3] + 2 * a[6] * tTask + 3 * a[9] * pow(tTask,2);
- 			vDes(1) = a[4] + 2 * a[7] * tTask + 3 * a[10] * pow(tTask,2);
- 			vDes(2) = a[5] + 2 * a[8] * tTask + 3 * /a[11] * pow(tTask,2);
-
-			posori_task->_desired_position = xDes;
-			posori_task->_desired_velocity = vDes;
- 
-            joint_task->_desired_position = q_desired;
-
-			// Update task model and set hierarchy
-			N_prec.setIdentity();30
-			posori_task->updateTaskModel(N_prec);
-			N_prec = posori_task->_N;
-			joint_task->updateTaskModel(N_prec);
-
-			// Compute torques
-			posori_task->computeTorques(posori_task_torques);
-			joint_task->computeTorques(joint_task_torques);
-            */
-
-		    //q_interpolated = (q_ready_pos + (q_inter_pos-q_ready_pos)*tTask/tStartToInter);
-		    q_interpolated = (q_ready_pos + (q_final_pos-q_ready_pos)*tTask/2.3);
-
-
-		    double tMotionTotal_j4 = 1.8;
-		    double tMotionStart_j4 = 0.5;
-		    double tMotionTotal_j6 = 3;
-		    double tMotionStart_j6 = 1.6;
-
-	    	// flick J7
-		    // if ( tTask < tMotionStart_j6 ) {
-		    // 	q_interpolated[6] = q_ready_pos[6];
-		    // }
-		    // else if ( (tTask >= (tMotionStart_j6)) and (tTask < (tMotionStart_j6 + tMotionTotal_j6)) ) {
-			   //  q_interpolated[6] = (q_ready_pos[6] + (q_final_pos[6]-q_ready_pos[6])*tTask/tMotionTotal_j6);
-		    // }
-		    // else {
-		    // 	q_interpolated[6] = q_final_pos[6];
-		    // }
-
-    		// flick J6- UNCOMMENT THE IFS
-            
-		    if ( tTask < tMotionStart_j6 ) {
-		    	q_interpolated[5] = q_ready_pos[5];
-		    }
-		    else if ( (tTask >= (tMotionStart_j6)) and (tTask < (tMotionStart_j6 + tMotionTotal_j6)) ) {
-			    q_interpolated[5] = (q_ready_pos[5] + (q_final_pos[5]-q_ready_pos[5])*tTask/tMotionTotal_j6);
-		    }
-		    else {
-		    	q_interpolated[5] = q_final_pos[5];
-		    }
-            
+            for (int i=0;i<dof;i++) {
+                if (tMotionStart[i] != 0.0) {
+                    if ( tTask < tMotionStart[i] ) {
+                        q_interpolated[i] = q_ready_pos[i];
+                    }
+                    else if ( (tTask >= (tMotionStart[i])) and (tTask < tMotionTotal[i])) {
+                        q_interpolated[i] = (q_ready_pos[i] + (q_inter_pos[i]-q_ready_pos[i])*tTask/tMotionTotal[i]);
+                    }
+                    else {
+                        q_interpolated[i] = q_inter_pos[i];
+                    }
+                } else {
+                    q_interpolated[i] = (q_ready_pos[i] + (q_inter_pos[i]-q_ready_pos[i])*tTask/tMotionTotal[i]);
+                }
+            }
 
 			joint_task->_desired_position = q_interpolated;
 
@@ -417,11 +378,10 @@ int main() {
 			//cout << (robot->_q - q_inter_pos).norm() << endl;
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
-			//if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
-			if ( (robot->_q - q_final_pos).norm() < 0.3) {
+			if ( (robot->_q - q_inter_pos).norm() < 0.1 ) {
+			//if ( (robot->_q - q_final_pos).norm() < 0.3) {
 				cout << "FOLLOW THROUGH STATE\n" <<endl;
-				// state = FOLLOW_THRU;
-				state = HOLD; //used for the flix
+				state = FOLLOW_THRU;
 				taskStart_time = timer.elapsedTime();
 			}
 
@@ -435,44 +395,6 @@ int main() {
 			// Initialize the task timer
             tTask = timer.elapsedTime() - taskStart_time;
             
-
-            /*
-            posori_task->_kp_pos = 100.0;
-            posori_task->_kv_pos = 100.0;
-            posori_task->_kp_ori = 100.0;
-            posori_task->_kv_ori = 70.0;
-
-            // Define the desired EE trajectory based on the second half of the precalculated coefficients
- 			Vector3d xDes = Vector3d(0.0,0.0,0.0);
- 			xDes(0) = a[12] + a[15] * tTask + a[18] * pow(tTask,2) + a[21] * pow(tTask,3);
- 			xDes(1) = a[13] + a[16] * tTask + a[19] * pow(tTask,2) + a[22] * pow(tTask,3);
- 			xDes(2) = a[14] + a[17] * tTask + a[20] * pow(tTask,2) + a[23] * pow(tTask,3);
-
-            // Define the desired velocity based on the desired trajectory above
- 			Vector3d vDes = Vector3d(0.0,0.0,0.0);
- 			vDes(0) = a[15] + 2 * a[18] * tTask + 3 * a[21] * pow(tTask,2);
- 			vDes(1) = a[16] + 2 * a[19] * tTask + 3 * a[22] * pow(tTask,2);
- 			vDes(2) = a[17] + 2 * a[20] * tTask + 3 * a[23] * pow(tTask,2);
-
-
-            posori_task->_desired_position = xDes;
-			posori_task->_desired_velocity = vDes;
-
-            joint_task->_desired_position = q_desired;
-
-			// update task model and set hierarchy
-			N_prec.setIdentity();
-			posori_task->updateTaskModel(N_prec);
-			N_prec = posori_task->_N;
-			joint_task->updateTaskModel(N_prec);
-
-			// compute torques
-			posori_task->computeTorques(posori_task_torques);
-			joint_task->computeTorques(joint_task_torques);
-	    for (int i=0;i<7;i++) {
-		    q_interpolated(i) = (q_inter_pos(i) - (q_inter_pos(i)-q_final_pos(i))*tTask/(t_final(i) - t_inter(i)));
-	    }
-            */
 		    q_interpolated = (q_inter_pos + (q_final_pos-q_inter_pos)*tTask/tInterToFinal);
 			joint_task->_desired_position = q_interpolated;
 
@@ -530,9 +452,7 @@ int main() {
 			command_torques = saturate_torques(posori_task_torques + joint_task_torques);
             */
 
-            // q_final_pos.setZero();
 			joint_task->_desired_velocity.setZero();
-			// joint_task->_desired_position = q_final_pos;
 
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
