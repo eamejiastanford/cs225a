@@ -122,13 +122,6 @@ int main() {
 	posori_task->_kv_pos = 20.0;
 	posori_task->_kp_ori = 200.0;
 	posori_task->_kv_ori = 20.0;
-    /*
-     * The default values are above.
-	posori_task->_kp_pos = 120.0;
-	posori_task->_kv_pos = 40.0;
-	posori_task->_kp_ori = 100.0;
-	posori_task->_kv_ori = 70.0;
-    */
 
 	// joint task
 	auto joint_task = new Sai2Primitives::JointTask(robot);
@@ -176,69 +169,26 @@ int main() {
     // For printing the joint velocities
     ofstream joint_velocity;
     joint_velocity.open("joint_velocity.txt");
-			// cout << joint_task->_integratrueted_position_error << endl;
 
-    // Coefficients for the polycnomial trajectory
-    VectorXd a(24);
-    //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.3151859, 0.319496, -2.510322, -0.207906, -0.679664, 1.673548, 0.4328, -0.17085849917695474, 0.01, 0, -0.608469135802469, 0, 0, 3.42435802469136, 0, 0, -2.54674897119342, 0;
-    //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.271937333333333, -0.146890666666667, -1.06236533333333, -0.120861037037037, -0.00878933333333333, 0.486977185185185, 0.5328, -3.9632, 1.75, 0, 8.55376, -3.2, 0, -5.65636, 2.0, 0, 1.17264, -0.4;
-    //a << 0.328847, 0.458458, 0.846774, 0, 0, 0, 0.271937333333333, -0.146890666666667, -0.929032, -0.120861037037037, -0.00878933333333333, 0.427717925925926, 0.5328, -3.9632, 1.85, 0, 8.55376, -3.2, 0, -5.65636, 2.0, 0, 1.17264, -0.4;
-
+    // DO WE NEED?
     // Intermediate point of the trajectory
     Vector3d xDesInter = Vector3d(0.5328,0.09829, 0.20);
     // End point of the trajectory
     Vector3d xDesF = Vector3d(0.5328,-0.1, 0.25);
 
-	// VectorXd q_desired = initial_q;
-	// VectorXd q_circle = initial_q;
-	// q_desired << 0, 0, 0, -1.6, 0, 1.9, 0; 
-
+    //Initialize vectors
 	VectorXd q_ready_pos = initial_q;
-	VectorXd q_inter_pos = initial_q;
 	VectorXd q_inter_pos1 = initial_q;
 	VectorXd q_inter_pos2 = initial_q;
 	VectorXd q_final_pos1 = initial_q;
 	VectorXd q_final_pos2 = initial_q;
-	VectorXd q_hold_pos = initial_q;
 	VectorXd q_interpolated = initial_q;
 
-    // Used for joint 1 movement controller only
-    //q_ready_pos << 2.60051, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
-    //q_inter_pos << 1.34851, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
-    //q_final_pos << 0.690139, 0.456864, -1.35736, -2.24334, 0.826839, 2.54507, -1.21573;
-    
-    // Used for joint 1 and 2 movement controller only
-    //q_ready_pos << 2.24239,-0.700111,-0.677187,-2.15274,-0.613343,1.24621,0.0269322;
-    //q_inter_pos << 1.39986,0.314558,-1.1326,-2.24341,-0.613585,1.24734,0.0269352;
-    //q_final_pos << 0.196068,1.27001,-1.52246,-2.1445,-0.613519,1.37792,0.0269463;
 
-    // Karate kick swing
-    // q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.55528,-0.986073;
-    // q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
-    // q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,-0.986073;
-
-    // Leg kicking motion (horizontal sweep)
-    // q_ready_pos << -1.63589,1.2622,-1.6661,-2.54296,-0.141813,1.85528,-0.986073;
-    // q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
-    // q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.21047,-0.986073;
-
-	// Leg kicking with an extra flick from joint 6
-    //q_ready_pos << -1.63589,1.2622,-1.6661,-2.84296,-0.141813,1.85528,-0.986073;
-    // q_inter_pos << 0.648375,1.2622,-1.6661,-1.292374,-0.141813,2.01618,-0.986073;
-   // q_inter_pos << 0.648375,1.2622,-1.6661,-0.592374,-0.141813,2.01618,-0.986073;
-   // q_final_pos << 0.833803,1.2622,-1.6661,-0.291798,-0.141813,2.51047,0.186073; //joint 4 was  -0.1011798
-   // q_final_pos << 1.51053,1.2622,-1.6661,-0.479243,-0.102015,2.08507,-0.821269;
-
-
-	// Leg kicking with an extra flick from joint 7
-    // q_ready_pos << -1.36611,1.53385,-1.80898,-2.74587,1.37521,1.63605,0.11715;
-    // q_final_pos << 0.166549,1.53385,-1.80898,-0.291798,1.37521,1.63605,-0.785267;
-    // TODO: tune this to get less overshoot in hold state
  
 	double tContact;
 	double tFollowThru;
 	double tHold;
-    //POSSIBLE FINAL POINTS
 	bool aim_left = true;
 	bool aim_right = !aim_left;
 	if (aim_right)
@@ -259,28 +209,17 @@ int main() {
 	    q_inter_pos2 << 0.32785,1.01904,-1.7853,-0.513735,0.988255,1.49858,-1.18815;
 	    q_final_pos1 << 1.22536,1.00093,-1.99103,-1.18414,0.998546,1.08171,-1.10544;
 	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
-	    tContact = 0.8;
+	    tContact = 1;
 	    tFollowThru = 0.35;
 	    tHold = 5;
 
 	}
  
 
-    double tStartToInter = 1.7;
-    double tInterToFinal = 1.7;
-    double tMotionTotal_j4 = 0.7;
-    double tMotionStart_j4 = 1.0;
-    double tMotionTotal_j6 = 0.7;
-    double tMotionStart_j6 = 1.0;
 
-    VectorXd tMotionStart(dof);
-    tMotionStart << 0.0, 0.0, 0.0, tMotionStart_j4, 0.0, tMotionStart_j6, 0.0;
-    VectorXd tMotionTotal(dof);
-    tMotionTotal << tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter, tStartToInter;
 
 	while (runloop) {
 		// wait for next scheduled loop
-			// cout << joint_task->_integrated_position_error << endl;
 		timer.waitForNextLoop(); 
 		double time = timer.elapsedTime() - start_time;
 
@@ -316,13 +255,6 @@ int main() {
              * start of its swing.
              */
             
-		    // Desired initial configuration
-            // Below was for the full swing
-			// q_init_desired << 1.47471, 0.0283157, -0.55426, -1.29408, 0.294309, 2.5031, 1.38538;
-            // For the semi circle swing
-            // 2.60051
-            // 1.34851
-            // 0.690139
 			joint_task->_kp = 150.0; //50;
 			joint_task->_kv = 20.0;
 			joint_task->_desired_position = q_ready_pos;
@@ -334,12 +266,10 @@ int main() {
 
 			// Compute torques
 			joint_task->computeTorques(joint_task_torques);
-
 			command_torques = saturate_torques(joint_task_torques);
+
             // Print the torques
-			cout << (robot->_q - q_ready_pos).norm()<< endl;
             trajectory << current_pos.transpose() << ' ' << time << endl;
-            des_trajectory << xDesF.transpose() << ' ' << time << endl;
             joints << robot->_q.transpose() << ' ' << time << endl;
             joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
             velocity << current_velocity.transpose() << ' ' << time << endl;
@@ -351,13 +281,6 @@ int main() {
 			if( (robot->_q - q_ready_pos).norm() < 0.1 )
 			{
 				cout << "SWING STATE\n" <<endl;
-                /*
-				posori_task->reInitializeTask();
-                posori_task->_use_velocity_saturation_flag = false;
-				posori_task->_desired_position += Vector3d(0.0,0.0,0.0);
-                posori_task->_desired_orientation = AngleAxisd(-M_PI/2, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
-				joint_task->reInitializeTask();
-                */
 				joint_task->_kp = 250.0;
 				joint_task->_kv = 15.0;
                 joint_task->_use_velocity_saturation_flag = false;
@@ -375,89 +298,8 @@ int main() {
 			// Initialize the task timer
             tTask = timer.elapsedTime() - taskStart_time;
 
-            // for (int i=0;i<dof;i++) {
-            //     if (tMotionStart[i] != 0.0) {
-            //         if ( tTask < tMotionStart[i] ) {
-            //             q_interpolated[i] = q_ready_pos[i];
-            //         }
-            //         else if ( (tTask >= (tMotionStart[i])) and (tTask < tMotionTotal[i])) {
-            //             tTask = tTask - tMotionStart[i];
-            //             q_interpolated[i] = (q_ready_pos[i] + (q_inter_pos[i]-q_ready_pos[i])*tTask/tMotionTotal[i]);
-            //         }
-            //         else {
-            //             q_interpolated[i] = q_inter_pos[i];
-            //         }
-            //     } else {
-            //         q_interpolated[i] = (q_ready_pos[i] + (q_inter_pos[i]-q_ready_pos[i])*tTask/tMotionTotal[i]);
-            //     }
-            // }
-
-
-             /*
-             * Controller for the main swing of the robot to the ball.
-             */
-            // Initialize the task timer
-            //tTask = timer.elapsedTime() - taskStart_time;
-
-            /*
-            // Define the desired trajectory of the EE based on the precalculated coefficients
-             Vector3d xDes = Vector3d(0.0,0.0,0.0);
-             xDes(0) = a[0] + a[3] * tTask + a[6] * pow(tTask,2) + a[9] * pow(tTask,3);
-             xDes(1) = a[1] + a[4] * tTask + a[7] * pow(tTask,2) + a[10] * pow(tTask,3);
-             xDes(2) = a[2] + a[5] * tTask + a[8] * pow(tTask,2) + a[11] * pow(tTask,3);
-
-
-            // Define the desired velocity of the swing based on the derivative of the desired trajectory
-             Vector3d vDes = Vector3d(0.0,0.0,0.0);
-             vDes(0) = a[3] + 2 * a[6] * tTask + 3 * a[9] * pow(tTask,2);
-             vDes(1) = a[4] + 2 * a[7] * tTask + 3 * a[10] * pow(tTask,2);
-             vDes(2) = a[5] + 2 * a[8] * tTask + 3 * /a[11] * pow(tTask,2);
-
-            posori_task->_desired_position = xDes;
-            posori_task->_desired_velocity = vDes;
- 
-            joint_task->_desired_position = q_desired;
-
-            // Update task model and set hierarchy
-            N_prec.setIdentity();30
-            posori_task->updateTaskModel(N_prec);
-            N_prec = posori_task->_N;
-            joint_task->updateTaskModel(N_prec);
-
-            // Compute torques
-            posori_task->computeTorques(posori_task_torques);
-            joint_task->computeTorques(joint_task_torques);
-            */
-
-    //         for (int i=0;i<7;i++) {
-                // q_interpolated(i) = (q_ready_pos(i) - (q_final_pos(i)-q_ready_pos(i))*tTask/t_final(i));
-       //      }
-
-            
+            // Set up the linear interpolation beteween the intermediate position and the initial position
             q_interpolated = (q_ready_pos + (q_inter_pos1-q_ready_pos)*tTask/tContact);
-
-            double tMotionTotal_j4 = 1.8;
-            double tMotionStart_j4 = 0.5;
-            double tMotionTotal_j6 = 5;
-            double tMotionStart_j6 = 1.5;
-
-         
-
-            // flick J6
-            // if ( tTask < tMotionStart_j6 ) {
-            //     q_interpolated[5] = q_ready_pos[5];
-            // }
-            // else if ( (tTask >= (tMotionStart_j6)) and (tTask < (tMotionStart_j6 + tMotionTotal_j6)) ) {
-            //     q_interpolated[5] = (q_ready_pos[5] + (q_final_pos[5]-q_ready_pos[5])*tTask/tMotionTotal_j6);
-            // }
-            // else {
-            //     q_interpolated[5] = q_final_pos[5];
-            // }
-
-            // q_interpolated[5] = (q_ready_pos[5] + (q_final_pos[5]-q_ready_pos[5])*tTask/1.5);
-            //joint_task->_desired_position = q_interpolated;
-
-
 			joint_task->_desired_position = q_interpolated;
 
 			// Update task model and set hierarchy
@@ -475,15 +317,12 @@ int main() {
             velocity << current_velocity.transpose() << ' ' << time << endl;
             torques << command_torques.transpose() << ' ' << time << endl;
 
-			//cout << (robot->_q - q_inter_pos).norm() << endl;
+
             // Once the robot has reached close enough to the desired intermediate point, 
             // change to the follow through controller 
-			//if ( (robot->_q - q_inter_pos).norm() < 0.05 ) {
 			if ( (robot->_q - q_inter_pos1).norm() < 0.3 ) {
-				//cout << "FOLLOW THROUGH STATE\n" <<endl;
-				cout << "HOLD STATE\n" <<endl;
+				cout << "FOLLOW THROUGH STATE\n" <<endl;
 				state = FOLLOW_THRU;
-				//state = HOLD;
 				taskStart_time = timer.elapsedTime();
 			}
 
@@ -491,7 +330,7 @@ int main() {
 	else if(state == FOLLOW_THRU)
 		{
             /*
-             * Controller for the main swing of the robot to the ball.
+             * Controller for the follow through of the robot after initial contact is made
              */
 
 			// Initialize the task timer
@@ -519,10 +358,11 @@ int main() {
             // Once the arm is close enough to the final position, change the controller
             // to hold the arm at that position
 			if ( (robot->_q - q_inter_pos2).norm() < 0.3 ) {
+				cout << "HOLD STATE\n" <<endl;
 				joint_task->_kp = 150.0;
 				joint_task->_kv = 15.0;
                 state = HOLD;
-				cout << "HOLD STATE\n" <<endl;
+				
            
 		} 
 		}
@@ -532,33 +372,10 @@ int main() {
              * Hold the arm at the final position once the full swing motion has been completed.
              */
 
-            /*
-            posori_task->_kp_pos = 120.0;
-            posori_task->_kv_pos = 40.0;
-            posori_task->_kp_ori = 100.0;
-            posori_task->_kv_ori = 70.0;
-
-            // Set the desired position to be the final position
-            posori_task->_desired_position = xDesF;
-
-         //   joint_task->_desired_position = q_desired;
-
-			// update task model and set hierarchy
-			N_prec.setIdentity();
-			posori_task->updateTaskModel(N_prec);
-			N_prec = posori_task->_N;
-			joint_task->updateTaskModel(N_prec);
-
-			// compute torques
-			posori_task->computeTorques(posori_task_torques);
-			joint_task->computeTorques(joint_task_torques);
-			command_torques = saturate_torques(posori_task_torques + joint_task_torques);
-            */
             tTask = timer.elapsedTime() - taskStart_time;
             
         	q_interpolated = (q_final_pos1 + (q_final_pos2-q_final_pos1)*tTask/tHold);
 			joint_task->_desired_position = q_interpolated;
-			//joint_task->_desired_velocity.setZero();
 
 			if ( (robot->_q - q_final_pos2).norm() < 0.2 ) {
 				joint_task->_desired_velocity.setZero();
@@ -572,17 +389,16 @@ int main() {
 			command_torques = saturate_torques(joint_task_torques);
 
             // Print the torques
-            trajectory << current_pos.transpose() << ' ' << time << endl;
-            des_trajectory << xDesF.transpose() << ' ' << time << endl;
-            joints << robot->_q.transpose() << ' ' << time << endl;
-            joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
-            velocity << current_velocity.transpose() << ' ' << time << endl;
-            torques << command_torques.transpose() << ' ' << time << endl;
+            // trajectory << current_pos.transpose() << ' ' << time << endl;
+            // des_trajectory << xDesF.transpose() << ' ' << time << endl;
+            // joints << robot->_q.transpose() << ' ' << time << endl;
+            // joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
+            // velocity << current_velocity.transpose() << ' ' << time << endl;
+            // torques << command_torques.transpose() << ' ' << time << endl;
 		}
 
 		// send to redis
 		redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
-
 		controller_counter++;
 
 	}
@@ -596,10 +412,8 @@ int main() {
 
 	double end_time = timer.elapsedTime();
    // std::cout << "\n";
-    //std::cout << "Controller Loop run time  : " << end_time << " seconds\n";
+   // std::cout << "Controller Loop run time  : " << end_time << " seconds\n";
    // std::cout << "Controller Loop updates   : " << timer.elapsedCycles() <<30 "\n";
    // std::cout << "Controller Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
-
-
 	return 0;
 }
