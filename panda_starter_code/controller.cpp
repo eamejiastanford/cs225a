@@ -50,8 +50,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-// const bool flag_simulation = false;
-const bool flag_simulation = true;
+const bool flag_simulation = false;
+// const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -197,31 +197,31 @@ int main() {
 	bool aim_left = true;
 	// bool aim_left = false;
 	bool aim_right = !aim_left;
-	if (aim_right)
-	{
-		q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
-	    q_inter_pos1 << 0.461504,1.41206,-1.89663,-1.19394,1.50597,1.43634,-0.378772;
-	    q_inter_pos2 << 0.860086,1.42542,-1.92116,-1.16575,1.71669,1.51686,-0.59824;
-	    q_final_pos1 << 1.30728,1.43812,-2.01119,-1.1699,1.71639,1.49235,-0.598261;
-	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
-	    tContact = 0.7;
-	    tFollowThru = 0.33;
-	    tSlowDown = 0.4;
-	    tHold = 5;
-	}
-	else
-	{
-		q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
-	    q_inter_pos1 << 0.2297,1.31169,-1.66643,-0.985295,1.38547,1.55638,-1.011448;
-	    q_inter_pos2 << 0.768317,1.15231,-1.77563,-0.958731,1.38585,1.56129,-0.787051;
-	    q_final_pos1 <<1.10297,1.11148,-1.96972,-0.98946,1.38545,1.38392,-0.786491;
-	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
-	    tContact = 1;
-	    tFollowThru = 0.38;
-	    tSlowDown = 0.5;
-	    tHold = 5;
+	// if (aim_right)
+	// {
+	// 	q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
+	//     q_inter_pos1 << 0.461504,1.41206,-1.89663,-1.19394,1.50597,1.43634,-0.378772;
+	//     q_inter_pos2 << 0.860086,1.42542,-1.92116,-1.16575,1.71669,1.51686,-0.59824;
+	//     q_final_pos1 << 1.30728,1.43812,-2.01119,-1.1699,1.71639,1.49235,-0.598261;
+	//     q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
+	//     tContact = 0.7;
+	//     tFollowThru = 0.33;
+	//     tSlowDown = 0.4;
+	//     tHold = 5;
+	// }
+	// else
+	// {
+	// 	q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
+	//     q_inter_pos1 << 0.2297,1.31169,-1.66643,-0.985295,1.38547,1.55638,-1.011448;
+	//     q_inter_pos2 << 0.768317,1.15231,-1.77563,-0.958731,1.38585,1.56129,-0.787051;
+	//     q_final_pos1 <<1.10297,1.11148,-1.96972,-0.98946,1.38545,1.38392,-0.786491;
+	//     q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
+	//     tContact = 1;
+	//     tFollowThru = 0.38;
+	//     tSlowDown = 0.5;
+	//     tHold = 5;
 
-	}
+	// }
  
 
 
@@ -257,12 +257,20 @@ int main() {
         
         if (state == AIMING)
         {
+        	while (true){
+        		joint_task->_desired_velocity.setZero();
+        		state = AIMING;
+			// Update task model and set hierarchy
+        		N_prec.setIdentity();
+        		joint_task->updateTaskModel(N_prec);
+        		joint_task->_use_velocity_saturation_flag = true;
+        		joint_task->computeTorques(joint_task_torques);
+        		command_torques = saturate_torques(joint_task_torques);
             // Ask for the direction the ball should be kicked
-            while (true){
-                cout << "Please enter the direction David should kick the ball (l, r, m): ";
-                cin >> direction;
-                if (direction == 'r' or direction == 'l' or direction == 'm') break;
-            }
+        		cout << "Please enter the direction David should kick the ball (l, r, m): ";
+        		cin >> direction;
+        		if (direction == 'r' or direction == 'l' or direction == 'm') break;
+        	}
 
             // Change the desired configuration based on user input
             if (direction == 'r')
@@ -472,7 +480,6 @@ int main() {
 			if ( (robot->_q - q_final_pos2).norm() < 0.2 ) {
 				joint_task->_desired_velocity.setZero();
 				joint_task->_desired_position = q_final_pos2;
-                state = AIMING;
 			}
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
