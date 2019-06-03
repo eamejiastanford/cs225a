@@ -128,8 +128,10 @@ int main() {
 	auto joint_task = new Sai2Primitives::JointTask(robot);
 
 #ifdef USING_OTG
-	joint_task->_use_interpolation_flag = true;
+	joint_task->_use_interpolation_flag = false;
+	joint_task->_use_velocity_saturation_flag = false;
 #else
+	joint_task->_use_interpolation_flag = false;
 	joint_task->_use_velocity_saturation_flag = false;
 #endif
 
@@ -202,7 +204,7 @@ int main() {
 	    q_final_pos1 << 1.47141,1.24917,-2.10856,-1.00369,0.614661,1.22402,-1.29265;
 	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
 	    tContact = 0.5;
-	    tFollowThru = 0.35;
+	    tFollowThru = 0.38;
 	    tSlowDown = 0.2;
 	    tHold = 5;
 	}
@@ -214,7 +216,7 @@ int main() {
 	    q_final_pos1 << 1.22536,1.00093,-1.99103,-1.18414,0.998546,1.08171,-1.10544;
 	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
 	    tContact = 1;
-	    tFollowThru = 0.35;
+	    tFollowThru = 0.38;
 	    tSlowDown = 0.2;
 	    tHold = 5;
 
