@@ -194,31 +194,31 @@ int main() {
 	double tSlowDown;
 	double tHold;
     char direction = 'x'; // Defined to x as an invalid input
-	// bool aim_left = true;
-	bool aim_left = false;
+	bool aim_left = true;
+	// bool aim_left = false;
 	bool aim_right = !aim_left;
 	if (aim_right)
 	{
 		q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
-	    q_inter_pos1 << 0.248145,1.43977,-1.90836,-1.01065,0.451754,1.22557,-1.29264;
-	    q_inter_pos2 << 0.924933,1.20561,-2.11051,-0.982463,0.614619,1.22403,-1.29265;
-	    q_final_pos1 << 1.47141,1.24917,-2.10856,-1.00369,0.614661,1.22402,-1.29265;
+	    q_inter_pos1 << 0.461504,1.41206,-1.89663,-1.19394,1.50597,1.43634,-0.378772;
+	    q_inter_pos2 << 0.860086,1.42542,-1.92116,-1.16575,1.71669,1.51686,-0.59824;
+	    q_final_pos1 << 1.30728,1.43812,-2.01119,-1.1699,1.71639,1.49235,-0.598261;
 	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
-	    tContact = 0.5;
-	    tFollowThru = 0.38;
-	    tSlowDown = 0.2;
+	    tContact = 0.7;
+	    tFollowThru = 0.33;
+	    tSlowDown = 0.4;
 	    tHold = 5;
 	}
 	else
 	{
 		q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
-	    q_inter_pos1 << -0.107027,1.29442,-1.77879,-0.531001,0.987211,1.43639,-1.18814;
-	    q_inter_pos2 << 0.32785,1.01904,-1.7853,-0.513735,0.988255,1.49858,-1.18815;
-	    q_final_pos1 << 1.22536,1.00093,-1.99103,-1.18414,0.998546,1.08171,-1.10544;
+	    q_inter_pos1 << 0.2297,1.31169,-1.66643,-0.985295,1.38547,1.55638,-1.011448;
+	    q_inter_pos2 << 0.768317,1.15231,-1.77563,-0.958731,1.38585,1.56129,-0.787051;
+	    q_final_pos1 <<1.10297,1.11148,-1.96972,-0.98946,1.38545,1.38392,-0.786491;
 	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
 	    tContact = 1;
 	    tFollowThru = 0.38;
-	    tSlowDown = 0.2;
+	    tSlowDown = 0.5;
 	    tHold = 5;
 
 	}
@@ -310,8 +310,8 @@ int main() {
              * start of its swing.
              */
             
-			joint_task->_kp = 150.0; //50;
-			joint_task->_kv = 20.0;
+			// joint_task->_kp = 250.0; //50;
+			// joint_task->_kv = 20.0;
 			joint_task->_desired_position = q_ready_pos;
 
 			// Update task model and set hierarchy
@@ -416,15 +416,12 @@ int main() {
 				cout << "SLOW_DOWN\n" <<endl;
 				joint_task->_kp = 150.0;
 				joint_task->_kv = 15.0;
-                state = HOLD;
-				//state = SLOW_DOWN;
+				state = SLOW_DOWN;
+				// state = HOLD;
 				taskStart_time = timer.elapsedTime();
-
-           
-		} 
+            } 
 		}
-
-	else if(state == SLOW_DOWN)
+        else if(state == SLOW_DOWN)
 		{
             /*
              * Controller for the follow through of the robot after initial contact is made
@@ -459,14 +456,8 @@ int main() {
 				joint_task->_kp = 150.0;
 				joint_task->_kv = 15.0;
                 state = HOLD;
-				
-           
-		} 
+            } 
 		}
-
-
-
-
         else if (state == HOLD) 
         {
             /*
