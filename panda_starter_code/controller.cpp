@@ -28,6 +28,7 @@ enum STATE {
     READY_POSITION,
     SWING,
     FOLLOW_THRU,
+    SLOW_DOWN,
     HOLD
 };
 
@@ -48,8 +49,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-const bool flag_simulation = false;
-// const bool flag_simulation = true;
+// const bool flag_simulation = false;
+const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -188,6 +189,7 @@ int main() {
  
 	double tContact;
 	double tFollowThru;
+	double tSlowDown;
 	double tHold;
 	bool aim_left = true;
 	bool aim_right = !aim_left;
@@ -200,6 +202,7 @@ int main() {
 	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
 	    tContact = 0.5;
 	    tFollowThru = 0.35;
+	    tSlowDown = 0.2;
 	    tHold = 5;
 	}
 	else
@@ -211,6 +214,7 @@ int main() {
 	    q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
 	    tContact = 1;
 	    tFollowThru = 0.35;
+	    tSlowDown = 0.2;
 	    tHold = 5;
 
 	}
@@ -358,6 +362,48 @@ int main() {
             // Once the arm is close enough to the final position, change the controller
             // to hold the arm at that position
 			if ( (robot->_q - q_inter_pos2).norm() < 0.3 ) {
+				cout << "SLOW_DOWN\n" <<endl;
+				joint_task->_kp = 150.0;
+				joint_task->_kv = 15.0;
+               // state = HOLD;
+				state = SLOW_DOWN;
+				taskStart_time = timer.elapsedTime();
+
+           
+		} 
+		}
+
+	else if(state == SLOW_DOWN)
+		{
+            /*
+             * Controller for the follow through of the robot after initial contact is made
+             */
+
+			// Initialize the task timer
+            tTask = timer.elapsedTime() - taskStart_time;
+            
+            
+		    q_interpolated = (q_inter_pos2 + (q_final_pos1-q_inter_pos2)*tTask/tSlowDown);
+			joint_task->_desired_position = q_interpolated;
+
+			// Update task model and set hierarchy
+			N_prec.setIdentity();
+			joint_task->updateTaskModel(N_prec);
+            joint_task->_use_velocity_saturation_flag = false;
+			joint_task->computeTorques(joint_task_torques);
+			command_torques = saturate_torques(joint_task_torques);
+
+            // Print the torques
+            // trajectory << current_pos.transpose() << ' ' << time << endl;
+            // des_trajectory << xDesF.transpose() << ' ' << time << endl;
+            // joints << robot->_q.transpose() << ' ' << time << endl;
+            // joint_velocity << robot->_dq.transpose() << ' ' << time << endl;
+            // velocity << current_velocity.transpose() << ' ' << time << endl;
+            // torques << command_torques.transpose() << ' ' << time << endl;
+
+            // Once the arm is close enough to the final position, change the controller
+            // to hold the arm at that position
+			if ( (robot->_q - q_final_pos1).norm() < 0.3 ) {
 				cout << "HOLD STATE\n" <<endl;
 				joint_task->_kp = 150.0;
 				joint_task->_kv = 15.0;
@@ -366,6 +412,10 @@ int main() {
            
 		} 
 		}
+
+
+
+
         else if (state == HOLD) 
         {
             /*
