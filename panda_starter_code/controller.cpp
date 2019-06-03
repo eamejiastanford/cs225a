@@ -25,6 +25,7 @@ const string robot_file = "./resources/panda_arm.urdf";
 #define POSORI_CONTROLLER     1
 
 enum STATE {
+    AIMING,
     READY_POSITION,
     SWING,
     FOLLOW_THRU,
@@ -32,7 +33,7 @@ enum STATE {
     HOLD
 };
 
-STATE state = READY_POSITION;
+STATE state = AIMING;
 
 // redis keys:
 // - read:
@@ -49,8 +50,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-const bool flag_simulation = false;
-// const bool flag_simulation = true;
+// const bool flag_simulation = false;
+const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -131,7 +132,6 @@ int main() {
 	joint_task->_use_interpolation_flag = false;
 	joint_task->_use_velocity_saturation_flag = false;
 #else
-	joint_task->_use_interpolation_flag = false;
 	joint_task->_use_velocity_saturation_flag = false;
 #endif
 
@@ -193,6 +193,7 @@ int main() {
 	double tFollowThru;
 	double tSlowDown;
 	double tHold;
+    char direction = 'x'; // Defined to x as an invalid input
 	// bool aim_left = true;
 	bool aim_left = false;
 	bool aim_right = !aim_left;
@@ -253,8 +254,55 @@ int main() {
 			}
 			robot->_M_inv = robot->_M.inverse();
 		}
+        
+        if (state == AIMING)
+        {
+            // Ask for the direction the ball should be kicked
+            while (true){
+                cout << "Please enter the direction David should kick the ball (l, r, m): ";
+                cin >> direction;
+                if (direction == 'r' or direction == 'l' or direction == 'm') break;
+            }
 
-		if(state == READY_POSITION)
+            // Change the desired configuration based on user input
+            if (direction == 'r')
+            {
+                q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
+                q_inter_pos1 << 0.248145,1.43977,-1.90836,-1.01065,0.451754,1.22557,-1.29264;
+                q_inter_pos2 << 0.924933,1.20561,-2.11051,-0.982463,0.614619,1.22403,-1.29265;
+                q_final_pos1 << 1.47141,1.24917,-2.10856,-1.00369,0.614661,1.22402,-1.29265;
+                q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
+                tContact = 0.5;
+                tFollowThru = 0.38;
+                tSlowDown = 0.2;
+                tHold = 5;
+            }
+            else if (direction  == 'l')
+            {
+                q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
+                q_inter_pos1 << -0.107027,1.29442,-1.77879,-0.531001,0.987211,1.43639,-1.18814;
+                q_inter_pos2 << 0.32785,1.01904,-1.7853,-0.513735,0.988255,1.49858,-1.18815;
+                q_final_pos1 << 1.22536,1.00093,-1.99103,-1.18414,0.998546,1.08171,-1.10544;
+                q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
+                tContact = 1;
+                tFollowThru = 0.38;
+                tSlowDown = 0.2;
+                tHold = 5;
+            } else {
+                // Currently the same configuration as left
+                q_ready_pos << -0.29748,1.38033,-1.67338,-1.76919,-0.0499905,1.95202,-1.23665;
+                q_inter_pos1 << -0.107027,1.29442,-1.77879,-0.531001,0.987211,1.43639,-1.18814;
+                q_inter_pos2 << 0.32785,1.01904,-1.7853,-0.513735,0.988255,1.49858,-1.18815;
+                q_final_pos1 << 1.22536,1.00093,-1.99103,-1.18414,0.998546,1.08171,-1.10544;
+                q_final_pos2 <<0.383048,1.52992,-1.74511,-2.32493,0.170002,1.95088,-1.23669;
+                tContact = 1;
+                tFollowThru = 0.38;
+                tSlowDown = 0.2;
+                tHold = 5;
+            }
+            state = READY_POSITION;
+        }
+        else if(state == READY_POSITION)
 		{
 
             /*
@@ -433,6 +481,7 @@ int main() {
 			if ( (robot->_q - q_final_pos2).norm() < 0.2 ) {
 				joint_task->_desired_velocity.setZero();
 				joint_task->_desired_position = q_final_pos2;
+                state = AIMING;
 			}
 			// Update task model and set hierarchy
 			N_prec.setIdentity();
