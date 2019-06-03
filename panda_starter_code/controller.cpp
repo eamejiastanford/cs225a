@@ -49,8 +49,8 @@ std::string ROBOT_GRAVITY_KEY;
 
 unsigned long long controller_counter = 0;
 
-// const bool flag_simulation = false;
-const bool flag_simulation = true;
+const bool flag_simulation = false;
+// const bool flag_simulation = true;
 
 const bool inertia_regularization = true;
 
@@ -191,7 +191,8 @@ int main() {
 	double tFollowThru;
 	double tSlowDown;
 	double tHold;
-	bool aim_left = true;
+	// bool aim_left = true;
+	bool aim_left = false;
 	bool aim_right = !aim_left;
 	if (aim_right)
 	{
@@ -365,8 +366,8 @@ int main() {
 				cout << "SLOW_DOWN\n" <<endl;
 				joint_task->_kp = 150.0;
 				joint_task->_kv = 15.0;
-               // state = HOLD;
-				state = SLOW_DOWN;
+                state = HOLD;
+				//state = SLOW_DOWN;
 				taskStart_time = timer.elapsedTime();
 
            
