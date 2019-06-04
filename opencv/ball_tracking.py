@@ -31,12 +31,14 @@ def set_redis(x,y,w,h,cx,cy):
 	r.set("opencv2:rect", str([x,y,w,h]))
 	r.set("opencv2:circle", str([cx,cy]))
 
-	if (cx<=200):
-		r.set("opencv2:shoot_decision", "LEFT")
+	if (cx<0):
+		r.set("opencv2:shoot_decision", "NO_GOAL")
+	elif (cx>=0 and cx <=200):
+		r.set("opencv2:shoot_decision", "RIGHT")
 	elif (cx>200 and cx<=400):
-		r.set("opencv2.shoot_decision", "CENTER")
+		r.set("opencv2:shoot_decision", "CENTER")
 	else:
-		r.set("opencv2.shoot_decision", "RIGHT")
+		r.set("opencv2:shoot_decision", "LEFT")
 
 
 while True:
@@ -75,7 +77,7 @@ while True:
 		else:
 			set_redis(0,0,0,0,0,0)
 	else:
-		set_redis(0,0,0,0,0,0)
+		set_redis(-1,-1,-1,-1,-1,-1)
 
 	pts.appendleft(center)
 
@@ -84,3 +86,31 @@ while True:
 
 	if key==ord("q"):
 		break
+
+"""
+Add to CPP:
+std::string GOAL_POSITION_KEY;
+std::string GOAL_LEFT = "LEFT";
+std::string GOAL_CENTER = "CENTER";
+std::string GOAL_RIGHT = "RIGHT";
+
+int main() {
+	GOAL_POSITION_KEY = "opencv2:shoot_decision"
+
+	std::string goal_position = redis_client.get(GOAL_POSITION_KEY);
+	
+	if (goal_position == GOAL_LEFT) {
+		std::cout << "LEFT GOAL POSITION" << endl;
+		state = LEFT_SWING;
+	} else if (goal_position == GOAL_CENTER) {
+		std::cout << "CENTER GOAL POSITION" << endl;
+		state = CENTER_SWING;
+	} else if (goal_position == GOAL_RIGHT) {
+		std::cout << "RIGHT GOAL POSITION" << endl;
+		state = RIGHT_SWING;
+	} else {
+		std::cout << "IMPOSSIBLE GOAL POSITION: " << goal_position << endl;
+	}
+
+}
+"""
