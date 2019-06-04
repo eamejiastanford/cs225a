@@ -48,6 +48,13 @@ std::string MASSMATRIX_KEY;
 std::string CORIOLIS_KEY;
 std::string ROBOT_GRAVITY_KEY;
 
+std::string GOAL_POSITION_KEY = "opencv2:shoot_decision";
+std::string GOAL_LEFT = "LEFT";
+std::string GOAL_CENTER = "CENTER";
+std::string GOAL_RIGHT = "RIGHT";
+
+std::string goal_position = "NO_GOAL";
+
 unsigned long long controller_counter = 0;
 
 const bool flag_simulation = false;
@@ -208,6 +215,8 @@ int main() {
         robot->linearVelocity(current_velocity, control_link, control_point);
         robot->position(current_pos, control_link, control_point);
 
+        goal_position = redis_client.get(GOAL_POSITION_KEY);
+
 		// update model
 		if(flag_simulation)
 		{
@@ -228,20 +237,35 @@ int main() {
         
         if (state == AIMING)
         {
-        	while (true){
-        		joint_task->_desired_velocity.setZero();
-        		state = AIMING;
-			// Update task model and set hierarchy
-        		N_prec.setIdentity();
-        		joint_task->updateTaskModel(N_prec);
-        		joint_task->_use_velocity_saturation_flag = true;
-        		joint_task->computeTorques(joint_task_torques);
-        		command_torques = saturate_torques(joint_task_torques);
-            // Ask for the direction the ball should be kicked
-        		cout << "Please enter the direction David should kick the ball (l, r, m): ";
-        		cin >> direction;
-        		if (direction == 'r' or direction == 'l' or direction == 'm') break;
-        	}
+   //      	while (true){
+   //      		joint_task->_desired_velocity.setZero();
+   //      		state = AIMING;
+			// // Update task model and set hierarchy
+   //      		N_prec.setIdentity();
+   //      		joint_task->updateTaskModel(N_prec);
+   //      		joint_task->_use_velocity_saturation_flag = true;
+   //      		joint_task->computeTorques(joint_task_torques);
+   //      		command_torques = saturate_torques(joint_task_torques);
+   //          // Ask for the direction the ball should be kicked
+   //      		cout << "Please enter the direction David should kick the ball (l, r, m): ";
+   //      		cin >> direction;
+   //      		if (direction == 'r' or direction == 'l' or direction == 'm') break;
+   //      	}
+        		if (goal_position == GOAL_LEFT) {
+					std::cout << "LEFT GOAL POSITION" << endl;
+					// state = LEFT_SWING;
+					direction = 'l';
+				} else if (goal_position == GOAL_CENTER) {
+					std::cout << "CENTER GOAL POSITION" << endl;
+					// state = CENTER_SWING;
+					direction = 'c';
+				} else if (goal_position == GOAL_RIGHT) {
+					std::cout << "RIGHT GOAL POSITION" << endl;
+					// state = RIGHT_SWING;
+					direction = 'r';
+				} else {
+					std::cout << "IMPOSSIBLE GOAL POSITION: " << goal_position << endl;
+				}
 
             // Change the desired configuration based on user input
             if (direction == 'r')
