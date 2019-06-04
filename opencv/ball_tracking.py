@@ -16,8 +16,12 @@ redis_host="localhost"
 redis_port=6379
 redis_password=""
 
-greenLower = (29, 86, 6)
-greenUpper = (64, 255, 255)
+# greenLower = (29, 86, 6) original
+greenLower = (0, 45, 6)
+# greenLower = (29, 34, 27)
+# greenUpper = (64, 255, 255) original
+greenUpper = (100, 255, 255)
+# greenUpper = (27, 51, 66)
 pts = deque(maxlen=64)
 
 vs=VideoStream(src=0).start()
@@ -33,12 +37,12 @@ def set_redis(x,y,w,h,cx,cy):
 
 	if (cx<0):
 		r.set("opencv2:shoot_decision", "NO_GOAL")
-	elif (cx>=0 and cx <=200):
-		r.set("opencv2:shoot_decision", "RIGHT")
-	elif (cx>200 and cx<=400):
+	elif (cx>=0 and cx <=178):
+		r.set("opencv2:shoot_decision", "LEFT")
+	elif (cx>200 and cx<=380):
 		r.set("opencv2:shoot_decision", "CENTER")
 	else:
-		r.set("opencv2:shoot_decision", "LEFT")
+		r.set("opencv2:shoot_decision", "RIGHT")
 
 
 while True:
