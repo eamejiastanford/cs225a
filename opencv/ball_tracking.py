@@ -37,9 +37,9 @@ def set_redis(x,y,w,h,cx,cy):
 
 	if (cx<0):
 		r.set("opencv2:shoot_decision", "NO_GOAL")
-	elif (cx>=0 and cx <=178):
+	elif (cx>=0 and cx <=160):
 		r.set("opencv2:shoot_decision", "LEFT")
-	elif (cx>200 and cx<=380):
+	elif (cx>160 and cx<=370):
 		r.set("opencv2:shoot_decision", "CENTER")
 	else:
 		r.set("opencv2:shoot_decision", "RIGHT")
